@@ -11,7 +11,7 @@ using size_t = System.UInt32;
 namespace OpenPA.Native
 {
     [NativeLibrary("libpulse.so.0")]
-    internal unsafe struct pa_context
+    internal unsafe partial struct pa_context
     {
         /** Instantiate a new connection context with an abstract mainloop API
         * and an application name. It is recommended to use pa_context_new_with_proplist()

@@ -46,7 +46,23 @@ namespace OpenPA.Enums
         // Volume can be trandlated to dB with pa_sw_volume_to_dB(). This is a
         // dynamic flag and may chaned at runtime after the source has initialized.
         DECIBEL_VOLUME = 0x0020,
+        // The latency can be adjusted dynamically depending on the
+        // needs of the connected streams.
         DYNAMIC_LATENCY = 0x0040,
+        // This source is in flat volume mode, i.e. always the maximum of
+        // the volume of all connected outputs.
         FLAT_VOLUME = 0x0080,
+    }
+
+    public enum SourceState
+    {
+        // This state is used when the server does not support source state introspection
+        INVALID_STATE = -1,
+        // Running, source is recording and used by at least one non-corked source-output
+        RUNNING = 0,
+        // When idle, the source is still recording but there is no non-corked source-output
+        IDLE = 1,
+        // When suspended, actual source access can be closed, for instance
+        SUSPENDED = 2,
     }
 }

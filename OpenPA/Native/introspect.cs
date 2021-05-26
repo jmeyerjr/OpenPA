@@ -8,10 +8,13 @@ using pa_usec_t = System.UInt64;
 using pa_volume_t = System.UInt32;
 using pa_sink_flags_t = OpenPA.Enums.SinkFlags;
 using pa_sink_state_t = OpenPA.Enums.SinkState;
+using pa_source_flags_t = OpenPA.Enums.SourceFlags;
+using pa_source_state_t = OpenPA.Enums.SourceState;
+using System.Runtime.InteropServices;
 
 namespace OpenPA.Native
 {
-    
+
     internal unsafe struct pa_sink_info
     {
         // Name of the sink
@@ -63,6 +66,11 @@ namespace OpenPA.Native
         // Array of formats supported by the sink;
         public pa_format_info** formats;
 
+    }
+
+    // pa_context bindings for sinks
+    internal unsafe partial struct pa_context
+    {
         // Get information about a sing by its name
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, IntPtr, void*, pa_operation*> pa_context_get_sink_info_by_name;
@@ -93,15 +101,15 @@ namespace OpenPA.Native
 
         // Suspend/Resume a sink.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_context*,IntPtr,int,IntPtr,void*,pa_operation*> pa_context_suspend_sink_by_name;
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, int, IntPtr, void*, pa_operation*> pa_context_suspend_sink_by_name;
 
         // Suspend/Resume a sink. If idx is PA_INVALID_INDEX all sink will be suspended.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_context*,uint,int,IntPtr,void*,pa_operation*> pa_context_suspend_sink_by_index;
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, int, IntPtr, void*, pa_operation*> pa_context_suspend_sink_by_index;
 
         // Change the profile of a sink.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_context*,uint,IntPtr,IntPtr,void*,pa_operation*> pa_context_set_sink_port_by_index;
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, IntPtr, IntPtr, void*, pa_operation*> pa_context_set_sink_port_by_index;
 
         // Change the profile of a sink.
         [NativeMethod]
@@ -109,6 +117,7 @@ namespace OpenPA.Native
 
     }
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate void pa_sink_info_cb_t(pa_context* c, pa_sink_info* i, int eol, void* userdata);
 
     internal struct pa_sink_port_info
@@ -135,7 +144,7 @@ namespace OpenPA.Native
         // The higher this value is, the more usefil this port is as a default.
         public uint priority;
         // A flags (see pa_port_available), indicating availability status of this port.
-        public int available;           
+        public int available;
     }
 
     internal unsafe struct pa_source_info
@@ -188,5 +197,59 @@ namespace OpenPA.Native
         public byte n_formats;
         // Array of formats supported by the source.
         public pa_format_info** formats;
+
     }
+
+    // pa_context bindings for sources
+    internal unsafe partial struct pa_context
+    {
+        // Get information about a source by its name
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, IntPtr, void*, pa_operation*> pa_context_get_source_info_by_name;
+
+        // Get information about a source by its index
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, IntPtr, void*, pa_operation*> pa_context_get_source_info_by_index;
+
+        // Get the complete source list
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, void*, pa_operation*> pa_context_get_source_info_list;
+
+        // Set the volume of a source device specified by its index
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, pa_cvolume*, IntPtr, void*, pa_operation*> pa_context_set_source_volume_by_index;
+
+        // Set the volume of a source device specified by its name
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, pa_cvolume*, IntPtr, void*, pa_operation*> pa_context_set_source_volume_by_name;
+
+        // Set the mute switch of a source device specified by its index
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, int, IntPtr, void*, pa_operation*> pa_context_set_source_mute_by_index;
+
+        // Set the mute switch of a source device specified by its name
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, int, IntPtr, void*, pa_operation*> pa_context_set_source_mute_by_name;
+
+        // Suspend/Resume a source.
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, int, IntPtr, void*, pa_operation*> pa_context_suspend_source_by_name;
+
+        // Suspend/Resume a source. If idx is PA_INVALID_INDEX, all sources will be suspended.
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, int, IntPtr, void*, pa_operation*> pa_context_suspend_source_by_index;
+
+        // Chaned the profile of a source.
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint, IntPtr, IntPtr, void*, pa_operation*> pa_context_set_source_port_by_index;
+
+        // Chaned the profile of a source.
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, IntPtr, IntPtr, void*, pa_operation*> pa_context_set_source_port_by_name;
+
+    }
+
+    // Callback prototype for pa_context_get_source_info_by_name() and friends
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    unsafe delegate void pa_source_info_cb_t(pa_context* c, pa_source_info* i, int eol, void* userdata);
 }
