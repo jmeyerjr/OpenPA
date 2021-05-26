@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Native Mehtod</Title>
+      <Shortcut>NativeMethod</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="CSharp">
+        <![CDATA[
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<$Parameters$> $funcname$;]]>
+      </Code>
+      <Declarations>
+        <Literal Editable="true">
+          <ID>Parameters</ID>
+          <Default>void</Default>
+        </Literal>
+        <Literal Editable="true">
+          <ID>funcname</ID>
+          <Default>func_name</Default>
+        </Literal>        
+      </Declarations>
+      <Imports>
+        <Import>
+          <Namespace>OpenPA.Interop</Namespace>
+        </Import>
+      </Imports>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
