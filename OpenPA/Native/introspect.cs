@@ -252,4 +252,37 @@ namespace OpenPA.Native
     // Callback prototype for pa_context_get_source_info_by_name() and friends
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     unsafe delegate void pa_source_info_cb_t(pa_context* c, pa_source_info* i, int eol, void* userdata);
+
+    internal struct pa_server_info
+    {
+        // User name of the daemon process
+        public IntPtr user_name;
+        // Host name the daemon is running on
+        public IntPtr host_name;
+        // Version string of the daemon
+        public IntPtr server_version;
+        // Server package name (usually "pulseaudio")
+        public IntPtr server_name;
+        // Default sample specification
+        public pa_sample_spec sample_spec;
+        // Name of default sink.
+        public IntPtr default_sink_name;
+        // Name of default source.
+        public IntPtr default_source_name;
+        // A random cookie for identifying this instance of PulseAudio.
+        public uint cookie;
+        // Default channel map.
+        public pa_channel_map channel_map;
+    }
+
+    // Callback prototype for pa_context_get_server_info()
+    unsafe delegate void pa_server_info_cb_t(pa_context* c, pa_server_info* i, void* userdata);
+
+    // pa_context bindings for servers.
+    internal unsafe partial struct pa_context
+    {
+        // Get some information about the server
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*,IntPtr,void*,pa_operation*> pa_context_get_server_info;
+    }
 }
