@@ -285,4 +285,48 @@ namespace OpenPA.Native
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<pa_context*,IntPtr,void*,pa_operation*> pa_context_get_server_info;
     }
+
+    internal unsafe struct pa_module_info
+    {
+        // Index of the module
+        public uint index;
+        // Name of the module
+        public IntPtr name;
+        // Argument string of the module
+        public IntPtr argument;
+        // Usage counter of PR_INVALID_INDEX
+        public uint n_used;
+        // deprecated Non-zero if this is an autoloaded module.
+        public int auto_unload;
+        // Property list
+        public pa_proplist* proplist;
+    }
+
+    // Callback prototype for pa_context_get_module_info() and friends
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    unsafe delegate void pa_module_info_cb_t(pa_context* c, pa_module_info* i, int eol, void* userdata);
+
+    // Callback prototype for pa_context_load_module()
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    unsafe delegate void pa_context_info_cb_t(pa_context* c, uint idx, void* userdata);
+
+    internal unsafe partial struct pa_context
+    {
+        // Get some information about a module by its index
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*,uint,IntPtr,void*,pa_operation*> pa_context_get_module_info;
+
+        // Get the complete list of currently loaded modules
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*,IntPtr,void*,pa_operation*> pa_context_get_module_info_list;
+
+        // Load a module.
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, IntPtr, IntPtr, IntPtr, void*, pa_operation*> pa_context_load_module;
+
+        // Unload a module.
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint,IntPtr,void*,pa_operation*> pa_contet_unload_module;
+
+    }
 }
