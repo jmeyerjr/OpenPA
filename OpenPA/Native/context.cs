@@ -37,8 +37,8 @@ namespace OpenPA.Native
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
-            //delegate* <pa_context*, void*, void>,
-            IntPtr,
+            delegate* unmanaged<pa_context*, void*, void>,
+            //IntPtr,
             void*,
             void> pa_context_set_state_callback;
 

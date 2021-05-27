@@ -21,7 +21,6 @@ namespace OpenPA
         public bool Connected => connected;
         private IntPtr ptrState;
         private static MainLoop _mainLoop;
-        ContextStateCallback stateCallback = StateCallback;
 
         public PAContext(MainLoop mainLoop, string name)
         {
@@ -42,44 +41,45 @@ namespace OpenPA
             return state;
         }
 
-        public Task<bool> ConnectAsync(string server)
+        public Task<bool> ConnectAsync(string server) => Task<bool>.Run(() =>
         {
-            return Task<bool>.Run(() =>
+            Monitor.Enter(this);
+
+            _mainLoop.Lock();
+
+            bool succeeded = Connect(server);
+
+            if (!succeeded)
             {
-                Monitor.Enter(this);
+                return false;
+            }
 
-                _mainLoop.Lock();
-                
-                bool succeeded = Connect(server);
+            ContextState state = (ContextState)Marshal.ReadInt32(ptrState);
+            Console.WriteLine(state);
 
-                if (!succeeded)
+            while (state != ContextState.READY)
+            {
+
+                if (state == ContextState.FAILED || state == ContextState.TERMINATED)
                 {
-                    return false;
+                    succeeded = false;
+                    break;
                 }
 
-                ContextState state = (ContextState)Marshal.ReadInt32(ptrState);
+                _mainLoop.Wait();
+                state = (ContextState)Marshal.ReadInt32(ptrState);
+                Console.WriteLine(state);
+            }
 
-                while (state != ContextState.READY)
-                {
-                    if (state == ContextState.FAILED || state == ContextState.TERMINATED)
-                    {
-                        succeeded = false;
-                        break;
-                    }
+            _mainLoop.Unlock();
 
-                    _mainLoop.Wait();
-                    state = (ContextState)Marshal.ReadInt32(ptrState);
-                }
-                
-                _mainLoop.Unlock();
-               
 
-                Monitor.Exit(this);
+            Monitor.Exit(this);
 
-                return succeeded;
+            return succeeded;
 
-            });
-        }
+        });
+
 
         public bool Connect(string server)
         {
@@ -96,8 +96,8 @@ namespace OpenPA
 
             ptrState = Marshal.AllocHGlobal(sizeof(int));
             Marshal.WriteInt32(ptrState, 0);
-            IntPtr funcPtr = Marshal.GetFunctionPointerForDelegate(stateCallback);
-            pa_context.pa_context_set_state_callback(pa_Context, funcPtr, (void*)ptrState);
+
+            pa_context.pa_context_set_state_callback(pa_Context, &StateCallback, (void*)ptrState);
 
 
             connected = result >= 0;
@@ -107,6 +107,7 @@ namespace OpenPA
             return connected;
         }
 
+        [UnmanagedCallersOnly]
         unsafe static void StateCallback(pa_context* ctx, void* userdata)
         {
 
@@ -115,21 +116,6 @@ namespace OpenPA
 
             int* ready = (int*)userdata;
 
-            switch (state)
-            {
-                case ContextState.UNCONNECTED:
-                case ContextState.CONNECTING:
-                case ContextState.AUTHORIZING:
-                case ContextState.SETTING_NAME:
-                default: break;
-                case ContextState.FAILED:
-                case ContextState.TERMINATED:
-                    *ready = (int)state;
-                    break;
-                case ContextState.READY:
-                    *ready = (int)state;
-                    break;
-            }
 
             *ready = (int)state;
 
@@ -185,9 +171,47 @@ namespace OpenPA
             });
         }
 
-        public async Task GetSinksAsync()
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        unsafe delegate void CB(pa_context* ctx, pa_server_info* info, void* userdata);
+        static string host_name;
+        static pa_server_info server_info;
+
+        public void GetSinksAsync()
         {
+            [UnmanagedCallersOnly]
+            static unsafe void Callback(pa_context* ctx, pa_server_info* info, void* userdata)
+            {
+
+                //byte** i = (byte**)userdata;
+                server_info = Marshal.PtrToStructure<pa_server_info>((IntPtr)info);
+
+                host_name = Marshal.PtrToStringUTF8(info->host_name);
+
+                
+                _mainLoop.Signal(1);
+            }
+
+
+            Monitor.Enter(this);
             
+            _mainLoop.Lock();
+            pa_operation* op = pa_context.pa_context_get_server_info(pa_Context, &Callback, null);
+
+            //while (pa_operation.pa_operation_get_state(op) == (int)OperationState.RUNNING)
+            while (String.IsNullOrEmpty(host_name))
+                _mainLoop.Wait();
+
+            pa_operation.pa_operation_unref(op);
+
+            string hostName = Marshal.PtrToStringUTF8(server_info.host_name);
+            Console.WriteLine(hostName);
+
+            _mainLoop.Accept();
+            _mainLoop.Unlock();
+            Monitor.Exit(this);
+
+            
+
         }
 
         protected virtual void Dispose(bool disposing)

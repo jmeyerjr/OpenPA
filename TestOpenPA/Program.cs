@@ -36,6 +36,8 @@ namespace TestOpenPA
 
             Console.WriteLine("Server: {0}, proto ver {1}", server, server_ver);
 
+            context.GetSinksAsync();
+
             context.Disconnect();
             context.Dispose();
 
