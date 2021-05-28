@@ -132,7 +132,7 @@ namespace OpenPA
             }
         }
 
-        public Task<string> GetServerNameAsync()
+        public Task<string?> GetServerNameAsync()
         {
             if (!connected)
                 throw new InvalidOperationException("Not connected");
@@ -144,7 +144,7 @@ namespace OpenPA
                 _mainLoop.Lock();
                 IntPtr ptr = pa_context.pa_context_get_server(pa_Context);
 
-                string server = Marshal.PtrToStringAnsi(ptr);
+                string? server = Marshal.PtrToStringAnsi(ptr);
                 _mainLoop.Unlock();
 
                 Monitor.Exit(this);
@@ -173,7 +173,7 @@ namespace OpenPA
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         unsafe delegate void CB(pa_context* ctx, pa_server_info* info, void* userdata);
-        static string host_name;
+        static string? host_name;
         static pa_server_info server_info;
 
         public void GetSinksAsync()
@@ -203,9 +203,15 @@ namespace OpenPA
 
             pa_operation.pa_operation_unref(op);
 
-            string hostName = Marshal.PtrToStringUTF8(server_info.host_name);
-            Console.WriteLine(hostName);
-
+            if (server_info.default_sink_name != IntPtr.Zero)
+            {
+                string? hostName = Marshal.PtrToStringUTF8(server_info.default_sink_name);
+                Console.WriteLine(hostName);
+            }
+            else
+            {
+                Console.WriteLine("No default sink");
+            }
             _mainLoop.Accept();
             _mainLoop.Unlock();
             Monitor.Exit(this);
