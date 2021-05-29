@@ -16,7 +16,7 @@ namespace OpenPA.Interop
         }
         public static void Load(Type type)
         { 
-            NativeLibraryAttribute attr = (NativeLibraryAttribute)type.GetCustomAttributes(true).FirstOrDefault(o => o is NativeLibraryAttribute);
+            NativeLibraryAttribute? attr = (NativeLibraryAttribute?)type.GetCustomAttributes(true).FirstOrDefault(o => o is NativeLibraryAttribute);
             if (attr != null)
             {
                 

@@ -41,7 +41,7 @@ namespace TestOpenPA
             var sinks = await context.GetSinkInfoAsync(serverInfo.DefaultSinkName);
             Console.WriteLine("Got sink");
             
-            var sources = await context.GetSourceInfoAsync(serverInfo.DefaultSourceName);            
+            var sources = await context.GetSourceInfoListAsync();            
             Console.WriteLine("Got Source");
 
             context.Disconnect();            
