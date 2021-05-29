@@ -15,30 +15,46 @@ namespace OpenPA
     /// </summary>
     public unsafe class PAContext : IDisposable
     {
+        #region Fields
         /// <summary>
         /// Pointer to the unmanaged pa_context object
         /// </summary>
         private pa_context* pa_Context;
+
         /// <summary>
         /// Disposed flag
         /// </summary>
         private bool disposedValue;
+
         /// <summary>
         /// Connected flag
         /// </summary>
-        private bool connected;
-        /// <summary>
-        /// True when connected to a PulseAudio server
-        /// </summary>
-        public bool Connected => connected;
-
-
+        private bool connected;       
 
         /// <summary>
         /// Reference to the threaded mainloop object
         /// </summary>
         private static MainLoop? _mainLoop;
+        #endregion
 
+        #region Properties
+        /// <summary>
+        /// True when connected to a PulseAudio server
+        /// </summary>
+        public bool Connected => connected;
+        #endregion
+
+        #region Enums
+        private enum CallbackState
+        {
+            Pending = 0,
+            Success = 1,
+            HasData = 2,
+            Failed = -1,
+        }
+        #endregion
+
+        #region Constructor
         public PAContext(MainLoop mainLoop, string name)
         {
             // Store a reference to the mainloop object
@@ -56,7 +72,9 @@ namespace OpenPA
             // Initialize the connected flag
             connected = false;
         }
+        #endregion
 
+        #region Connection
         /// <summary>
         /// Returns the current state of the context
         /// </summary>
@@ -78,8 +96,12 @@ namespace OpenPA
             // Return the context state
             return state;
         }
-
+        
+        /// <summary>
+        /// Holds state data while connecting
+        /// </summary>
         static IntPtr ptrState;
+
         /// <summary>
         /// Connects to a PulseAudio server
         /// </summary>
@@ -195,9 +217,6 @@ namespace OpenPA
 
         });
 
-
-
-
         /// <summary>
         /// Disconnects from the connected PulseAudio server
         /// </summary>
@@ -212,7 +231,9 @@ namespace OpenPA
                 connected = false;
             }
         }
+        #endregion
 
+        #region Stats
         /// <summary>
         /// Gets the name of the connected server.
         /// </summary>
@@ -282,7 +303,9 @@ namespace OpenPA
                 return ver;
             });
         }
+        #endregion
 
+        #region Server
         /// <summary>
         /// State flag for the get_server_info callback
         /// 0 = pending, 1 = complete
@@ -359,14 +382,9 @@ namespace OpenPA
 
 
         }
+        #endregion        
 
-        enum CallbackState
-        {
-            Pending = 0,
-            Success = 1,
-            HasData = 2,
-            Failed = -1,
-        }
+        #region Sink
         /// <summary>
         /// State flag for the get_sink_info callback
         /// 0 = pending, 1 = pa_sink_info valid, -1 = end of list (no data)
@@ -485,6 +503,111 @@ namespace OpenPA
             });
         }
 
+        /// <summary>
+        /// Gets a SinkInfo object describing a sink
+        /// </summary>
+        /// <param name="sink">Name of the sink</param>
+        /// <returns>SinkInfo object</returns>
+        public Task<SinkInfo?> GetSinkInfoAsync(uint index)
+        {
+            #region Local Functions
+            // Callback for the get_sink_info call
+            [UnmanagedCallersOnly]
+            static unsafe void Callback(pa_context* ctx, pa_sink_info* info, int eol, void* userdata)
+            {
+                // Test for the end of list
+                if (eol <= 0)
+                {
+                    // Not the end of the list
+
+                    // Copy the sink_info data to the static structure
+                    sink_info = Marshal.PtrToStructure<pa_sink_info>((IntPtr)info);
+
+                    // Flag that there is valid data
+                    gotSink = CallbackState.HasData;
+
+                    // Signal the mainloop to continue
+                    _mainLoop?.Signal(1);
+                }
+                else
+                {
+                    // End of the list
+
+                    // Flag that we have reached the end of the list
+                    gotSink = CallbackState.Success;
+
+                    // Signal the mainloop to continue
+                    _mainLoop?.Signal(0);
+                }
+
+            }
+            #endregion
+
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
+
+            return Task.Run(() =>
+            {
+                SinkInfo? info = default;
+
+                // Lock the context so that we can remain thread-safe
+                Monitor.Enter(this);
+
+                // Set flag to 'pending'
+                gotSink = CallbackState.Pending;
+
+                // Lock the mainloop
+                _mainLoop.Lock();
+
+                // Call the native get_sink_info native function passing in the name and callback
+                pa_operation* op = pa_context.pa_context_get_sink_info_by_index(pa_Context, index, &Callback, null);
+
+                // Wait for the callback to signal
+                while (gotSink == CallbackState.Pending)
+                    _mainLoop.Wait();
+
+                // Dereference the pa_operation
+                pa_operation.pa_operation_unref(op);
+
+                // If the callback returned data
+                if (gotSink == CallbackState.HasData)
+                {
+                    // Copy the unmanaged sink_info structure into a SinkInfo object
+                    info = SinkInfo.Convert(sink_info);
+                }
+
+                // Allow PulseAudio to free the sink_info
+                _mainLoop.Accept();
+
+                // Set the flag to 'pending'
+                gotSink = CallbackState.Pending;
+
+                // Call the native get_sink_info passing in the name and callback.
+                // It is required to call this again even though we are only requesting
+                // info on a single sink. This finishes the request and sets the state to 'success'.
+                op = pa_context.pa_context_get_sink_info_by_index(pa_Context, index, &Callback, null);
+
+                // Wait until the callback signals
+                while (gotSink == CallbackState.Pending)
+                    _mainLoop.Wait();
+
+                // Dereference the pa_operation
+                pa_operation.pa_operation_unref(op);
+
+                // Unlock the mainloop
+                _mainLoop.Unlock();
+                
+
+                // Unlock the context
+                Monitor.Exit(this);
+
+                // Return the SinkInfo object
+                return info;
+            });
+        }
+        #endregion
+
+        #region Dispose
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -527,5 +650,6 @@ namespace OpenPA
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+        #endregion
     }
 }
