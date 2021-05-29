@@ -42,7 +42,7 @@ namespace TestOpenPA
             Console.WriteLine("Server: {0}, proto ver {1}", server, server_ver);
 
             ServerInfo serverInfo = await context.GetServerInfoAsync();
-            SinkInfo sinkInfo = await context.GetSinkInfoAsync(serverInfo.DefaultSinkName);
+            var sinks= await context.GetSinkInfoListAsync();
 
             context.Disconnect();
             context.Dispose();

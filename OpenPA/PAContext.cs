@@ -605,6 +605,97 @@ namespace OpenPA
                 return info;
             });
         }
+
+        /// <summary>
+        /// Gets the list of sinks on currently on the server
+        /// </summary>        
+        /// <returns>List of SinkInfo objects</returns>
+        public Task<IReadOnlyList<SinkInfo?>> GetSinkInfoListAsync()
+        {
+            #region Local Functions
+            // Callback for the get_sink_info call
+            [UnmanagedCallersOnly]
+            static unsafe void Callback(pa_context* ctx, pa_sink_info* info, int eol, void* userdata)
+            {
+                // Test for the end of list
+                if (eol <= 0)
+                {
+                    // Not the end of the list
+
+                    // Copy the sink_info data to the static structure
+                    sink_info = Marshal.PtrToStructure<pa_sink_info>((IntPtr)info);
+
+                    // Flag that there is valid data
+                    gotSink = CallbackState.HasData;
+
+                    // Signal the mainloop to continue
+                    _mainLoop?.Signal(1);
+                }
+                else
+                {
+                    // End of the list
+
+                    // Flag that we have reached the end of the list
+                    gotSink = CallbackState.Success;
+
+                    // Signal the mainloop to continue
+                    _mainLoop?.Signal(0);
+                }
+
+            }
+            #endregion
+
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
+
+            return Task.Run(() =>
+            {
+                List<SinkInfo?> sinks = new();                
+
+                // Lock the context so that we can remain thread-safe
+                Monitor.Enter(this);
+                
+                // Lock the mainloop
+                _mainLoop.Lock();
+
+                do
+                {
+                    // Set flag to 'pending'
+                    gotSink = CallbackState.Pending;
+
+                    // Call the native get_sink_info native function passing in the name and callback
+                    pa_operation* op = pa_context.pa_context_get_sink_info_list(pa_Context, &Callback, null);
+
+                    // Wait for the callback to signal
+                    while (gotSink == CallbackState.Pending)
+                        _mainLoop.Wait();
+
+                    // Dereference the pa_operation
+                    pa_operation.pa_operation_unref(op);
+
+                    // If the callback returned data
+                    if (gotSink == CallbackState.HasData)
+                    {
+                        // Copy the unmanaged sink_info structure into a SinkInfo object
+                        sinks.Add(SinkInfo.Convert(sink_info));
+
+                        // Allow PulseAudio to free the sink_info
+                        _mainLoop.Accept();
+                    }
+
+                } while (gotSink != CallbackState.Success);
+
+                // Unlock the mainloop
+                _mainLoop.Unlock();
+
+
+                // Unlock the context
+                Monitor.Exit(this);
+
+                // Return the SinkInfo object
+                return (IReadOnlyList<SinkInfo?>)sinks;
+            });
+        }
         #endregion
 
         #region Dispose
