@@ -11,7 +11,7 @@ namespace OpenPA
     public class ChannelMap
     {
         public byte NumChannels { get; init; }
-        public IReadOnlyList<ChannelPosition> Map { get; init; }
+        public IReadOnlyList<ChannelPosition>? Map { get; init; }
 
         internal unsafe static ChannelMap Convert(pa_channel_map channel_map)
         {

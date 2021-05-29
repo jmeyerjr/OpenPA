@@ -68,7 +68,7 @@
         TOP_REAR_RIGHT,
         TOP_REAR_CENTER,
 
-        MAX
+        MAX = 32
 
     }
 

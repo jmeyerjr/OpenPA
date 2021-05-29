@@ -71,6 +71,8 @@ namespace OpenPA
                 Console.WriteLine(state);
             }
 
+            pa_context.pa_context_set_state_callback(pa_Context, null, null);
+
             _mainLoop.Unlock();
 
 
@@ -173,7 +175,7 @@ namespace OpenPA
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         unsafe delegate void CB(pa_context* ctx, pa_server_info* info, void* userdata);
-        static string? host_name;
+        static int gotServer;
         static pa_server_info server_info;
 
         public Task<ServerInfo?> GetServerInfoAsync()
@@ -181,39 +183,33 @@ namespace OpenPA
             [UnmanagedCallersOnly]
             static unsafe void Callback(pa_context* ctx, pa_server_info* info, void* userdata)
             {
-
-                //byte** i = (byte**)userdata;
+               
                 server_info = Marshal.PtrToStructure<pa_server_info>((IntPtr)info);
 
-                host_name = Marshal.PtrToStringUTF8(info->host_name);
+                gotServer = 1;
 
-                
                 _mainLoop.Signal(1);
             }
 
-            return Task.Run(() =>
+            return Task.Run<ServerInfo?>(() =>
            {
                ServerInfo? info = default;
 
                Monitor.Enter(this);
 
+               gotServer = 0;
+
                _mainLoop.Lock();
                pa_operation* op = pa_context.pa_context_get_server_info(pa_Context, &Callback, null);
-
-                //while (pa_operation.pa_operation_get_state(op) == (int)OperationState.RUNNING)
-                while (String.IsNullOrEmpty(host_name))
+                
+                while (gotServer == 0)
                    _mainLoop.Wait();
 
                pa_operation.pa_operation_unref(op);
 
-               if (server_info.default_sink_name != IntPtr.Zero)
-               {
-                   info = ServerInfo.Convert(server_info);                   
-               }
-               else
-               {
-                   Console.WriteLine("No default sink");
-               }
+               
+               info = ServerInfo.Convert(server_info);                   
+               
                _mainLoop.Accept();
                _mainLoop.Unlock();
                Monitor.Exit(this);
@@ -222,6 +218,67 @@ namespace OpenPA
            });
             
 
+        }
+
+        static int gotSink;
+        static pa_sink_info sink_info;
+        public Task<SinkInfo?> GetSinkInfoAsync(string sink)
+        {
+            [UnmanagedCallersOnly]
+            static unsafe void Callback(pa_context* ctx, pa_sink_info* info, int eol, void* userdata)
+            {
+                if (eol <= 0)
+                {
+                    sink_info = Marshal.PtrToStructure<pa_sink_info>((IntPtr)info);
+                    gotSink = 1;
+                    _mainLoop.Signal(1);
+                }
+                else
+                {
+                    gotSink = -1;
+                    _mainLoop.Signal(0);
+                }
+                
+            }
+
+            return Task.Run(() =>
+            {
+                SinkInfo? info = default;
+
+                Monitor.Enter(this);
+
+                IntPtr name = Marshal.StringToHGlobalAnsi(sink);
+
+                gotSink = 0;
+
+                _mainLoop.Lock();                
+                pa_operation* op = pa_context.pa_context_get_sink_info_by_name(pa_Context, name, &Callback, null);
+
+                while (gotSink == 0)
+                    _mainLoop.Wait();
+
+                pa_operation.pa_operation_unref(op);
+                
+
+                if (gotSink == 1)
+                {
+                    info = SinkInfo.Convert(sink_info);
+                }
+                _mainLoop.Accept();
+
+                gotSink = 0;
+                op = pa_context.pa_context_get_sink_info_by_name(pa_Context, name, &Callback, null);
+                while (gotSink == 0)
+                    _mainLoop.Wait();
+                pa_operation.pa_operation_unref(op);
+
+                Marshal.FreeHGlobal(name);
+                
+                _mainLoop.Unlock();
+                Monitor.Exit(this);
+
+                return info;
+            });
         }
 
         protected virtual void Dispose(bool disposing)
@@ -249,12 +306,12 @@ namespace OpenPA
             }
         }
 
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~PAContext()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
+        // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        ~PAContext()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: false);
+        }
 
         public void Dispose()
         {

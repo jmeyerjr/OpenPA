@@ -45,7 +45,7 @@ namespace OpenPA
         /// <summary>
         /// Channel map
         /// </summary>
-        public ChannelMap ChannelMap { get; init; }
+        public ChannelMap? ChannelMap { get; init; }
 
         internal static ServerInfo Convert(pa_server_info server_info)
         {

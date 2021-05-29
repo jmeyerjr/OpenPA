@@ -44,7 +44,7 @@ namespace OpenPA
                 throw new InvalidOperationException();
             }
             else
-            {
+            {                
                 pa_threaded_mainloop.pa_threaded_mainloop_stop(mainloop);
                 running = false;
             }
