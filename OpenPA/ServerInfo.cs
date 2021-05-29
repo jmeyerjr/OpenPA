@@ -47,8 +47,15 @@ namespace OpenPA
         /// </summary>
         public ChannelMap? ChannelMap { get; init; }
 
+        /// <summary>
+        /// Copies an unmanaged pa_server_info structure to a ServerInfo object
+        /// </summary>
+        /// <param name="server_info">Unmanaged pa_server_info structure</param>
+        /// <returns>ServerInfo object</returns>
         internal static ServerInfo Convert(pa_server_info server_info)
         {
+            // Creates a ServerInfo object and populates it with data
+            // from the unmanaged structure
             ServerInfo info = new()
             {
                 ServerName = server_info.server_name != IntPtr.Zero ? Marshal.PtrToStringUTF8(server_info.server_name) : String.Empty,
@@ -62,6 +69,7 @@ namespace OpenPA
                 ChannelMap = ChannelMap.Convert(server_info.channel_map)
             };
 
+            // Returns the ServerInfo object
             return info;
         }
     }

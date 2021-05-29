@@ -80,35 +80,61 @@ namespace OpenPA
         /// Card index, or PA_INVALID_INDEX
         /// </summary>
         public uint Card { get; init; }
+        /// <summary>
+        /// List of available ports
+        /// </summary>
         public IReadOnlyList<SinkPortInfo>? Ports { get; init; }
+        /// <summary>
+        /// Copy of active port
+        /// </summary>
         public SinkPortInfo? ActivePort { get; init; }
+        /// <summary>
+        /// List of formats supported by the sink
+        /// </summary>
         public IReadOnlyList<FormatInfo>? Formats { get; init; }
 
 
         internal unsafe static SinkInfo Convert(pa_sink_info sink_info)
         {
+            // Create list of ports
             List<SinkPortInfo> ports = new();
             if (sink_info.n_ports > 0)
             {
+                // Point to the first port in the list
                 pa_sink_port_info* pi = *sink_info.ports;
+
+                // Loop for n_ports times
                 for (int i = 0; i < sink_info.n_ports; i++)
                 {
+                    // Copy the port into a managed structure and add it
+                    // to the list
                     ports.Add(SinkPortInfo.Convert(*pi));
+
+                    // Move to the next port in the list
                     pi++;
                 }
             }
 
+            // Create list of formats
             List<FormatInfo> formats = new();
             if (sink_info.n_formats > 0)
             {
+                // Point to the first format in the list
                 pa_format_info* fi = *sink_info.formats;
+
+                // Loop for n_formats times
                 for (int i = 0; i < sink_info.n_formats; i++)
                 {
+                    // Copy the format into a managed structure and add it
+                    // to the list
                     formats.Add(FormatInfo.Convert(*fi));
+
+                    // Move to the next format in the list
                     fi++;
                 }
             }
 
+            // Create a SinkInfo object and populate it with data from the unmanaged structure
             SinkInfo info = new()
             {
                 Name = sink_info.name != IntPtr.Zero ? Marshal.PtrToStringUTF8(sink_info.name) : String.Empty,
@@ -129,9 +155,11 @@ namespace OpenPA
                 Card = sink_info.card,
                 Volume = Volume.Convert(sink_info.volume),
                 Ports = ports,
+                ActivePort = sink_info.active_port != null ? SinkPortInfo.Convert(*sink_info.active_port) : null,
                 Formats = formats,
             };
 
+            // Return the created SinkInfo object
             return info;
         }
     }

@@ -10,273 +10,477 @@ using System.Threading.Tasks;
 
 namespace OpenPA
 {
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    unsafe delegate void ContextStateCallback(pa_context* ctx, void* userdata);
-
+    /// <summary>
+    /// PulseAudio Context object
+    /// </summary>
     public unsafe class PAContext : IDisposable
     {
+        /// <summary>
+        /// Pointer to the unmanaged pa_context object
+        /// </summary>
         private pa_context* pa_Context;
+        /// <summary>
+        /// Disposed flag
+        /// </summary>
         private bool disposedValue;
+        /// <summary>
+        /// Connected flag
+        /// </summary>
         private bool connected;
+        /// <summary>
+        /// True when connected to a PulseAudio server
+        /// </summary>
         public bool Connected => connected;
-        private IntPtr ptrState;
-        private static MainLoop _mainLoop;
+
+
+
+        /// <summary>
+        /// Reference to the threaded mainloop object
+        /// </summary>
+        private static MainLoop? _mainLoop;
 
         public PAContext(MainLoop mainLoop, string name)
         {
+            // Store a reference to the mainloop object
             _mainLoop = mainLoop;
+
+            // Copy the name of this client to unmanaged memory
             IntPtr ptr = Marshal.StringToHGlobalAnsi(name);
+
+            // Create the unmanaged pa_context object
             pa_Context = pa_context.pa_context_new(mainLoop.API, ptr);
+
+            // Free the client name from unmanaged memory
             Marshal.FreeHGlobal(ptr);
 
+            // Initialize the connected flag
             connected = false;
         }
 
+        /// <summary>
+        /// Returns the current state of the context
+        /// </summary>
+        /// <returns>Context state</returns>
         public ContextState GetState()
         {
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
+
+            // Lock the mainloop
             _mainLoop.Lock();
+
+            // Call the native function to get the state of the context
             ContextState state = (ContextState)pa_context.pa_context_get_state(pa_Context);
+
+            // Unlock the mainloop
             _mainLoop.Unlock();
 
+            // Return the context state
             return state;
         }
 
+        static IntPtr ptrState;
+        /// <summary>
+        /// Connects to a PulseAudio server
+        /// </summary>
+        /// <param name="server">Server address (i.e. "tcp:localhost")</param>
+        /// <returns>True if successful</returns>
         public Task<bool> ConnectAsync(string server) => Task<bool>.Run(() =>
         {
+
+            #region Local Functions
+            // Callback for context state
+            [UnmanagedCallersOnly]
+            unsafe static void StateCallback(pa_context* ctx, void* userdata)
+            {
+                // Get the state of the context
+                var state = pa_context.pa_context_get_state(ctx);
+
+                if (userdata != null)
+                {
+                    // Cast the state pointer to an int
+                    int* ready = (int*)userdata;
+
+                    // Copy the context state into the buffer
+                    *ready = (int)state;
+                }
+
+                // Signal the main loop to continue,
+                // passing 0 because we are not using any transient data
+                _mainLoop?.Signal(0);
+            }
+
+            // Helper for connect call
+            bool Connect(string server)
+            {
+                // Copy the server address to unmanaged memory
+                IntPtr ptr = Marshal.StringToHGlobalAnsi(server);
+
+                // Call the native function to connect to the server,
+                // passing in the server address
+                var result = pa_context.pa_context_connect(pa_Context, ptr, ContextFlags.NOFLAGS, null);
+
+                // Free the unmanaged memory buffer
+                Marshal.FreeHGlobal(ptr);
+
+                // Allocate unmanaged memory for the current connection state
+                // and initialize it to zero
+                ptrState = Marshal.AllocHGlobal(sizeof(int));
+                Marshal.WriteInt32(ptrState, 0);
+
+                // Set the context state callback
+                pa_context.pa_context_set_state_callback(pa_Context, &StateCallback, (void*)ptrState);
+
+                // Return the result (true if no error)
+                return true;
+            }
+            #endregion
+
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
+
+            // Lock the context object so as not to cause a race condition
+            // This allows the context to be thread-safe
             Monitor.Enter(this);
 
+            // Lock the mainloop
             _mainLoop.Lock();
 
+            // Begin the connection process
             bool succeeded = Connect(server);
 
+            // If there was an error return false
             if (!succeeded)
             {
                 return false;
             }
 
+            // Read the state object to get the initial state
             ContextState state = (ContextState)Marshal.ReadInt32(ptrState);
             Console.WriteLine(state);
 
+            // Loop until the connection completes
             while (state != ContextState.READY)
             {
-
+                // If there is an error connecting, return false
                 if (state == ContextState.FAILED || state == ContextState.TERMINATED)
                 {
                     succeeded = false;
                     break;
                 }
 
+                // Wait on the mainloop until something is signaled
                 _mainLoop.Wait();
+
+                // Get the current state
                 state = (ContextState)Marshal.ReadInt32(ptrState);
                 Console.WriteLine(state);
             }
 
+            // Clear the state callback
             pa_context.pa_context_set_state_callback(pa_Context, null, null);
 
+            // Unlock the mainloop
             _mainLoop.Unlock();
 
 
+
+            // Unlock the context object
             Monitor.Exit(this);
 
+            connected = true;
+
+            // Return success
             return succeeded;
 
         });
 
 
-        public bool Connect(string server)
-        {
 
 
-            IntPtr ptr = Marshal.StringToHGlobalAnsi(server);
-
-
-            var result = pa_context.pa_context_connect(pa_Context, ptr, ContextFlags.NOFLAGS, null);
-
-
-            Marshal.FreeHGlobal(ptr);
-
-
-            ptrState = Marshal.AllocHGlobal(sizeof(int));
-            Marshal.WriteInt32(ptrState, 0);
-
-            pa_context.pa_context_set_state_callback(pa_Context, &StateCallback, (void*)ptrState);
-
-
-            connected = result >= 0;
-
-
-
-            return connected;
-        }
-
-        [UnmanagedCallersOnly]
-        unsafe static void StateCallback(pa_context* ctx, void* userdata)
-        {
-
-            var state = pa_context.pa_context_get_state(ctx);
-
-
-            int* ready = (int*)userdata;
-
-
-            *ready = (int)state;
-
-            _mainLoop.Signal(0);
-        }
-
-
+        /// <summary>
+        /// Disconnects from the connected PulseAudio server
+        /// </summary>
         public void Disconnect()
         {
             if (connected)
             {
+                // Call the native function to disconnect from the server
                 pa_context.pa_context_disconnect(pa_Context);
+
+                // Set the connected flag to 'disconnected' (false)
                 connected = false;
             }
         }
 
+        /// <summary>
+        /// Gets the name of the connected server.
+        /// </summary>
+        /// <returns>Server name (This is usually the address)</returns>
         public Task<string?> GetServerNameAsync()
         {
             if (!connected)
                 throw new InvalidOperationException("Not connected");
 
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
+
             return Task<string>.Run(() =>
             {
+                // Lock the context so that we can remain thread-safe
                 Monitor.Enter(this);
 
+                // Lock the mainloop
                 _mainLoop.Lock();
+
+                // Call the native function to get the connected server name
                 IntPtr ptr = pa_context.pa_context_get_server(pa_Context);
 
+                // Copy the name of the server from unmanaged memory to a string
                 string? server = Marshal.PtrToStringAnsi(ptr);
+
+                // Unlock the mainloop
                 _mainLoop.Unlock();
 
+                // Unlock the context
                 Monitor.Exit(this);
 
+                // Return the server name
                 return server;
             });
         }
 
+        /// <summary>
+        /// Gets the current protocol version
+        /// </summary>
+        /// <returns>Protocol version</returns>
         public Task<uint> GetServerProtocolVersionAsync()
         {
             if (!connected)
                 throw new InvalidOperationException("Not Connected");
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
 
             return Task<uint>.Run(() =>
             {
+                // Lock the context so we can remain thread-safe
                 Monitor.Enter(this);
 
+                // Lock the mainloop
                 _mainLoop.Lock();
+
+                // Call the native function to get the protocol version
                 uint ver = pa_context.pa_context_get_server_protocol_version(pa_Context);
+
+                // Unlock the mainloop
                 _mainLoop.Unlock();
 
+                // Unlock the context
                 Monitor.Exit(this);
+
+                // Return the protocol version
                 return ver;
             });
         }
 
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        unsafe delegate void CB(pa_context* ctx, pa_server_info* info, void* userdata);
-        static int gotServer;
+        /// <summary>
+        /// State flag for the get_server_info callback
+        /// 0 = pending, 1 = complete
+        /// </summary>
+        static CallbackState gotServer;
+        /// <summary>
+        /// Structure to hold the server_info from the callback
+        /// </summary>
         static pa_server_info server_info;
 
         public Task<ServerInfo?> GetServerInfoAsync()
         {
+            #region Local Functions
+            // Callback used for the get_server_info call
             [UnmanagedCallersOnly]
             static unsafe void Callback(pa_context* ctx, pa_server_info* info, void* userdata)
             {
-               
-                server_info = Marshal.PtrToStructure<pa_server_info>((IntPtr)info);
+                if (info != null)
+                {
+                    // Copy the returned pa_server_info pointer into the static buffer
+                    server_info = Marshal.PtrToStructure<pa_server_info>((IntPtr)info);
+                }
 
-                gotServer = 1;
+                // Flag 'complete'
+                gotServer = CallbackState.HasData;
 
-                _mainLoop.Signal(1);
+                // Signal the mainloop to continue
+                _mainLoop?.Signal(1);
             }
+            #endregion
+
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
 
             return Task.Run<ServerInfo?>(() =>
-           {
-               ServerInfo? info = default;
+            {
+                ServerInfo? info = default;
 
-               Monitor.Enter(this);
+                // Lock the context to remain thread-safe
+                Monitor.Enter(this);
 
-               gotServer = 0;
+                // Set the flag to pending
+                gotServer = CallbackState.Pending;
 
-               _mainLoop.Lock();
-               pa_operation* op = pa_context.pa_context_get_server_info(pa_Context, &Callback, null);
-                
-                while (gotServer == 0)
-                   _mainLoop.Wait();
+                // Lock the mainloop
+                _mainLoop.Lock();
 
-               pa_operation.pa_operation_unref(op);
+                // Call the native get_server_info function, passing in the callback
+                pa_operation* op = pa_context.pa_context_get_server_info(pa_Context, &Callback, null);
 
-               
-               info = ServerInfo.Convert(server_info);                   
-               
-               _mainLoop.Accept();
-               _mainLoop.Unlock();
-               Monitor.Exit(this);
+                // Wait for the operation to complete,
+                // the callback will signal the mainloop when it is called
+                while (gotServer == CallbackState.Pending)
+                    _mainLoop.Wait();
 
-               return info;
-           });
-            
+                // Free the pa_operation handle
+                pa_operation.pa_operation_unref(op);
+
+                // Copy the pa_server_info structure to a ServerInfo object
+                info = ServerInfo.Convert(server_info);
+
+                // Allow PulseAudio to free the pa_server_info data structure
+                _mainLoop.Accept();
+
+                // Unlock the mainloop
+                _mainLoop.Unlock();
+
+                // Unlock the context
+                Monitor.Exit(this);
+
+                // Return the created ServerInfo object
+                return info;
+            });
+
 
         }
 
-        static int gotSink;
+        enum CallbackState
+        {
+            Pending = 0,
+            Success = 1,
+            HasData = 2,
+            Failed = -1,
+        }
+        /// <summary>
+        /// State flag for the get_sink_info callback
+        /// 0 = pending, 1 = pa_sink_info valid, -1 = end of list (no data)
+        /// </summary>
+        static CallbackState gotSink;
+        /// <summary>
+        /// Structure to hold the sink_info from the callback
+        /// </summary>
         static pa_sink_info sink_info;
+
+        /// <summary>
+        /// Gets a SinkInfo object describing a sink
+        /// </summary>
+        /// <param name="sink">Name of the sink</param>
+        /// <returns>SinkInfo object</returns>
         public Task<SinkInfo?> GetSinkInfoAsync(string sink)
         {
+            #region Local Functions
+            // Callback for the get_sink_info call
             [UnmanagedCallersOnly]
             static unsafe void Callback(pa_context* ctx, pa_sink_info* info, int eol, void* userdata)
             {
+                // Test for the end of list
                 if (eol <= 0)
                 {
+                    // Not the end of the list
+
+                    // Copy the sink_info data to the static structure
                     sink_info = Marshal.PtrToStructure<pa_sink_info>((IntPtr)info);
-                    gotSink = 1;
-                    _mainLoop.Signal(1);
+
+                    // Flag that there is valid data
+                    gotSink = CallbackState.HasData;
+
+                    // Signal the mainloop to continue
+                    _mainLoop?.Signal(1);
                 }
                 else
                 {
-                    gotSink = -1;
-                    _mainLoop.Signal(0);
+                    // End of the list
+
+                    // Flag that we have reached the end of the list
+                    gotSink = CallbackState.Success;
+
+                    // Signal the mainloop to continue
+                    _mainLoop?.Signal(0);
                 }
-                
+
             }
+            #endregion
+
+            if (_mainLoop == null)
+                throw new InvalidOperationException("MainLoop is null");
 
             return Task.Run(() =>
             {
                 SinkInfo? info = default;
 
+                // Lock the context so that we can remain thread-safe
                 Monitor.Enter(this);
 
+                // Copy the name of the sink to an unmanaged buffer
                 IntPtr name = Marshal.StringToHGlobalAnsi(sink);
 
-                gotSink = 0;
+                // Set flag to 'pending'
+                gotSink = CallbackState.Pending;
 
-                _mainLoop.Lock();                
+                // Lock the mainloop
+                _mainLoop.Lock();
+
+                // Call the native get_sink_info native function passing in the name and callback
                 pa_operation* op = pa_context.pa_context_get_sink_info_by_name(pa_Context, name, &Callback, null);
 
-                while (gotSink == 0)
+                // Wait for the callback to signal
+                while (gotSink == CallbackState.Pending)
                     _mainLoop.Wait();
 
+                // Dereference the pa_operation
                 pa_operation.pa_operation_unref(op);
-                
 
-                if (gotSink == 1)
+                // If the callback returned data
+                if (gotSink == CallbackState.HasData)
                 {
+                    // Copy the unmanaged sink_info structure into a SinkInfo object
                     info = SinkInfo.Convert(sink_info);
                 }
+
+                // Allow PulseAudio to free the sink_info
                 _mainLoop.Accept();
 
-                gotSink = 0;
+                // Set the flag to 'pending'
+                gotSink = CallbackState.Pending;
+
+                // Call the native get_sink_info passing in the name and callback.
+                // It is required to call this again even though we are only requesting
+                // info on a single sink. This finishes the request and sets the state to 'success'.
                 op = pa_context.pa_context_get_sink_info_by_name(pa_Context, name, &Callback, null);
-                while (gotSink == 0)
+
+                // Wait until the callback signals
+                while (gotSink == CallbackState.Pending)
                     _mainLoop.Wait();
+
+                // Dereference the pa_operation
                 pa_operation.pa_operation_unref(op);
 
-                Marshal.FreeHGlobal(name);
-                
+                // Unlock the mainloop
                 _mainLoop.Unlock();
+
+                // Free the unmanaged memory that holds the sink name
+                Marshal.FreeHGlobal(name);
+
+                // Unlock the context
                 Monitor.Exit(this);
 
+                // Return the SinkInfo object
                 return info;
             });
         }
@@ -291,15 +495,19 @@ namespace OpenPA
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+
+                // If we are connected to a PulseAudio server, disconnect
                 Disconnect();
+
+                // Dereference the pa_context
                 pa_context.pa_context_unref(pa_Context);
+
+                // Set our pointer to null
                 pa_Context = null;
 
-                if (ptrState != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(ptrState);
-                    ptrState = IntPtr.Zero;
-                }
+                // Free the state used in the connect callback            
+                Marshal.FreeHGlobal(ptrState);
+                ptrState = IntPtr.Zero;
 
                 // TODO: set large fields to null
                 disposedValue = true;

@@ -10,37 +10,54 @@ namespace OpenPA
 {
     public class PropList
     {
+        /// <summary>
+        /// List of properties in this object
+        /// </summary>
         public IReadOnlyList<String?>? Properties { get; init; }
 
+        /// <summary>
+        /// Copies an unmanaged pa_proplist structure to a PropList object
+        /// </summary>
+        /// <param name="proplist">Unmanaged pa_proplist structure</param>
+        /// <returns>PropList object</returns>
         internal unsafe static PropList Convert(pa_proplist* proplist)
         {
+            // Create a list to hold the properties
             List<String?> properties = new();
 
+            // Allocate a state object and initialize it to NULL
             IntPtr state = Marshal.AllocHGlobal(Marshal.SizeOf<IntPtr>());
             Marshal.WriteIntPtr(state, IntPtr.Zero);
 
+            // Create a pointer for property names
+            IntPtr p = IntPtr.Zero;
+
+            // Loop until a NULL value is found
             do
             {
-                IntPtr p = pa_proplist.pa_proplist_iterate(proplist, (void**)state);
+                // Get the next propertie in the list
+                p = pa_proplist.pa_proplist_iterate(proplist, (void**)state);
 
+                // If there is a property name
                 if (p != IntPtr.Zero)
                 {
+                    // Marshal the name into a string
                     string? propName = Marshal.PtrToStringUTF8(p);
+                    // Add the property to the list
                     properties.Add(propName);
-                }
-                else
-                {
-                    break;
-                }
-            } while (Marshal.ReadIntPtr(state) != IntPtr.Zero);
+                }                
+            } while (p != IntPtr.Zero && Marshal.ReadIntPtr(state) != IntPtr.Zero);
 
+            // Free the state object
             Marshal.FreeHGlobal(state);
 
+            // Create and populate a PropList object with the property list
             PropList propList = new()
             {
                 Properties = properties
             };
 
+            // Return the PropList object
             return propList;
         }
     }

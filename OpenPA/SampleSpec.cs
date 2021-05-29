@@ -33,15 +33,23 @@ namespace OpenPA
         /// </summary>
         public SampleFormat Format { get; init; }
 
-        internal static SampleSpec Convert(pa_sample_spec pa)
+        /// <summary>
+        /// Copies an unmanaged pa_sample_spec structure to a SampleSpec object
+        /// </summary>
+        /// <param name="sample_spec">Unmanaged pa_sample_spec structure</param>
+        /// <returns>SampleSpec object</returns>
+        internal static SampleSpec Convert(pa_sample_spec sample_spec)
         {
+            // Create a SampleSpec object and populate it with data
+            // from the sample_spec structure
             SampleSpec sampleSpec = new()
             {
-                Rate = pa.rate,
-                Channels = pa.channels,
-                Format = pa.format
+                Rate = sample_spec.rate,
+                Channels = sample_spec.channels,
+                Format = sample_spec.format
             };
 
+            // Return the SampleSpec object
             return sampleSpec;
         }
     }

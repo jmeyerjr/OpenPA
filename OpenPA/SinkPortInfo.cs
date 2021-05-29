@@ -27,8 +27,16 @@ namespace OpenPA
         /// </summary>
         public bool Available { get; init; }
 
+
+        /// <summary>
+        /// Copies an unmanaged pa_sink_port_info structure into a SinkPortInfo object
+        /// </summary>
+        /// <param name="port_info">Unmanaged structure</param>
+        /// <returns>SinkPortInfo object</returns>
         internal static SinkPortInfo Convert(pa_sink_port_info port_info)
         {
+            // Create and populate a SinkPortInfd object with data
+            // from the unmanaged structure
             SinkPortInfo info = new()
             {
                 Name = port_info.name != IntPtr.Zero ? Marshal.PtrToStringUTF8(port_info.name) : String.Empty,
@@ -37,6 +45,7 @@ namespace OpenPA
                 Available = port_info.available == 1,
             };
 
+            // Return the SinkPortInfo object
             return info;
         }
     }
