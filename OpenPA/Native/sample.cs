@@ -7,6 +7,7 @@ using OpenPA.Enums;
 using OpenPA.Interop;
 using size_t = System.UInt32;
 using pa_usec_t = System.UInt64;
+using pa_sample_format_t = OpenPA.Enums.SampleFormat;
 
 namespace OpenPA.Native
 {
@@ -26,10 +27,10 @@ namespace OpenPA.Native
         public pa_sample_format_t format;
 
         // The sample rate
-        uint rate;
+        public uint rate;
 
         // Audio channels (1 for mono, 2 for stereo, ...)
-        byte channels;
+        public byte channels;
 
         // Return the amount of bytes that constitute playback of one second of
         // audio, with the specified sample spec.
@@ -127,8 +128,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<pa_sample_format_t, int> pa_sample_format_is_be;
     }
 
-    internal struct pa_sample_format_t
-    {    }
+
 
     // Turn off warning for never-set fields and naming violations.
 #pragma warning restore CS0169,CS0649, IDE1006, IDE0051

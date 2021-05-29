@@ -26,17 +26,22 @@ namespace TestOpenPA
             mainLoop.Start();
 
             PAContext context = new(mainLoop, "TestApp");
-            var t = await context.ConnectAsync("tcp:10.1.10.12");
+            var t = await context.ConnectAsync("tcp:10.1.10.102");
 
             Console.WriteLine("Connection succeeded: {0}", t);
-
+            if (!t)
+            {
+                mainLoop.Stop();
+                mainLoop.Dispose();
+                return;
+            }
 
             string server = await context.GetServerNameAsync();
             uint server_ver = await context.GetServerProtocolVersionAsync();
 
             Console.WriteLine("Server: {0}, proto ver {1}", server, server_ver);
 
-            context.GetSinksAsync();
+            ServerInfo serverInfo = await context.GetServerInfoAsync();
 
             context.Disconnect();
             context.Dispose();

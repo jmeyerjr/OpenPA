@@ -176,7 +176,7 @@ namespace OpenPA
         static string? host_name;
         static pa_server_info server_info;
 
-        public void GetSinksAsync()
+        public Task<ServerInfo?> GetServerInfoAsync()
         {
             [UnmanagedCallersOnly]
             static unsafe void Callback(pa_context* ctx, pa_server_info* info, void* userdata)
@@ -191,31 +191,35 @@ namespace OpenPA
                 _mainLoop.Signal(1);
             }
 
+            return Task.Run(() =>
+           {
+               ServerInfo? info = default;
 
-            Monitor.Enter(this);
-            
-            _mainLoop.Lock();
-            pa_operation* op = pa_context.pa_context_get_server_info(pa_Context, &Callback, null);
+               Monitor.Enter(this);
 
-            //while (pa_operation.pa_operation_get_state(op) == (int)OperationState.RUNNING)
-            while (String.IsNullOrEmpty(host_name))
-                _mainLoop.Wait();
+               _mainLoop.Lock();
+               pa_operation* op = pa_context.pa_context_get_server_info(pa_Context, &Callback, null);
 
-            pa_operation.pa_operation_unref(op);
+                //while (pa_operation.pa_operation_get_state(op) == (int)OperationState.RUNNING)
+                while (String.IsNullOrEmpty(host_name))
+                   _mainLoop.Wait();
 
-            if (server_info.default_sink_name != IntPtr.Zero)
-            {
-                string? hostName = Marshal.PtrToStringUTF8(server_info.default_sink_name);
-                Console.WriteLine(hostName);
-            }
-            else
-            {
-                Console.WriteLine("No default sink");
-            }
-            _mainLoop.Accept();
-            _mainLoop.Unlock();
-            Monitor.Exit(this);
+               pa_operation.pa_operation_unref(op);
 
+               if (server_info.default_sink_name != IntPtr.Zero)
+               {
+                   info = ServerInfo.Convert(server_info);                   
+               }
+               else
+               {
+                   Console.WriteLine("No default sink");
+               }
+               _mainLoop.Accept();
+               _mainLoop.Unlock();
+               Monitor.Exit(this);
+
+               return info;
+           });
             
 
         }
