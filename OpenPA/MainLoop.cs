@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using OpenPA.Native;
@@ -36,6 +37,8 @@ namespace OpenPA
         /// </summary>
         internal pa_mainloop_api* API => mainloop_api;
 
+        internal pa_threaded_mainloop* ptr => mainloop;
+
         public MainLoop()
         {
             // Create the mainloop handle
@@ -43,6 +46,12 @@ namespace OpenPA
 
             // Store the mainloop api handle
             mainloop_api = pa_threaded_mainloop.pa_threaded_mainloop_get_api(mainloop);
+
+            IntPtr name = Marshal.StringToHGlobalAnsi("PulseAudio");
+
+            pa_threaded_mainloop.pa_threaded_mainloop_set_name(mainloop, name);
+
+            Marshal.FreeHGlobal(name);
         }
 
         /// <summary>
@@ -109,6 +118,10 @@ namespace OpenPA
         /// </summary>
         public void Accept() => pa_threaded_mainloop.pa_threaded_mainloop_accept(mainloop);
         
+        public bool IsInMainThread()
+        {
+            return 1 == pa_threaded_mainloop.pa_threaded_mainloop_in_thread(mainloop);
+        }
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)

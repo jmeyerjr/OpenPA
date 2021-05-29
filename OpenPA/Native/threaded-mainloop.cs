@@ -199,7 +199,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<pa_threaded_mainloop*, int> pa_threaded_mainloop_in_thread;
         // Sets the name of the thread.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_threaded_mainloop*, IntPtr> pa_threaded_mainloop_set_name;
+        public static delegate* unmanaged[Cdecl]<pa_threaded_mainloop*, IntPtr, void> pa_threaded_mainloop_set_name;
         // Runs the given callback in the mainloop thread without the lock held. The
         // caller is responsible for ensuring that PulseAudio data structures are only
         // accessed in a thread-safe way (that is, APIs that take pa_context and
