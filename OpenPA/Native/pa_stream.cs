@@ -177,7 +177,7 @@ namespace OpenPA.Native
         *
         * \since 0.9.16 */
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_stream*, void**, size_t, int> pa_stream_begin_write;
+        public static delegate* unmanaged[Cdecl]<pa_stream*, void**, size_t*, int> pa_stream_begin_write;
 
         /** Reverses the effect of pa_stream_begin_write() dropping all data
         * that has already been placed in the memory area returned by
@@ -259,7 +259,7 @@ namespace OpenPA.Native
         *
         * Returns zero on success, negative on error. */
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_stream*, void**, size_t, int> pa_stream_peek;
+        public static delegate* unmanaged[Cdecl]<pa_stream*, void**, size_t*, int> pa_stream_peek;
 
         /** Remove the current fragment on record streams. It is invalid to do this without first
         * calling pa_stream_peek(). Returns zero on success. */

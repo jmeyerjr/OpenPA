@@ -21,19 +21,17 @@ namespace TestOpenPA
 
         static async Task program()
         {
-            PulseAudio.Init();
-            MainLoop mainLoop = new MainLoop();
-            mainLoop.Start();
+            PulseAudio.Init();            
 
-            PAContext context = new(mainLoop, "TestApp");
+            PAContext context = new(MainLoop.Instance, "TestApp");
             var t = await context.ConnectAsync("tcp:10.1.10.102");
             
 
             Console.WriteLine("Connection succeeded: {0}", t);
             if (!t)
             {
-                mainLoop.Stop();
-                mainLoop.Dispose();
+                MainLoop.Instance.Stop();
+                MainLoop.Instance.Dispose();
                 return;
             }
 
@@ -47,8 +45,8 @@ namespace TestOpenPA
             context.Disconnect();            
             context.Dispose();
 
-            mainLoop.Stop();
-            mainLoop.Dispose();
+            MainLoop.Instance.Stop();
+            MainLoop.Instance.Dispose();
 
         }
     }

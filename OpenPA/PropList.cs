@@ -45,7 +45,7 @@ namespace OpenPA
                     string? propName = Marshal.PtrToStringUTF8(p);
                     // Add the property to the list
                     properties.Add(propName);
-                }                
+                }
             } while (p != IntPtr.Zero && Marshal.ReadIntPtr(state) != IntPtr.Zero);
 
             // Free the state object
@@ -59,6 +59,36 @@ namespace OpenPA
 
             // Return the PropList object
             return propList;
+        }
+
+        internal unsafe static pa_proplist* Convert(PropList propList)
+        {
+            pa_proplist* proplist;
+
+            proplist = pa_proplist.pa_proplist_new();
+            if (proplist == null)
+            {
+                throw new Exception("Could not create pa_proplist.");
+            }
+
+            if (propList.Properties != null)
+            {
+                foreach (string? prop in propList.Properties)
+                {
+                    IntPtr ptr = Marshal.StringToHGlobalAnsi(prop);
+
+                    int result = pa_proplist.pa_proplist_setp(proplist, ptr);
+
+                    Marshal.FreeHGlobal(ptr);
+
+                    if (result != 0)
+                    {
+                        throw new Exception("Can't set property on pa_proplist");
+                    }
+                }
+            }
+
+            return proplist;
         }
     }
 }

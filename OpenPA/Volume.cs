@@ -52,5 +52,22 @@ namespace OpenPA
             // Return the Volume object
             return volume;
         }
+
+        internal unsafe static pa_cvolume Convert(Volume volume)
+        {
+            pa_cvolume vol;
+
+            vol.channels = volume.Channels;
+
+            if (volume.Values != null)
+            {
+                for (int i = 0; i < volume.Channels; i++)
+                {
+                    vol.values[i] = volume.Values[i];
+                }
+            }
+
+            return vol;
+        }
     }
 }

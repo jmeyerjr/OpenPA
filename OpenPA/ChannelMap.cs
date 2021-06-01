@@ -59,5 +59,22 @@ namespace OpenPA
             // Return the ChannelMap object
             return channelMap;
         }
+
+        internal unsafe static pa_channel_map Convert(ChannelMap channelMap)
+        {
+            pa_channel_map channel_map;
+
+            channel_map.channels = channelMap.NumChannels;
+
+            for (int i = 0; i < channelMap.NumChannels; i++)
+            {
+                if (channelMap.Map != null)
+                {
+                    channel_map.map[i] = (int)channelMap.Map[i];
+                }
+            }
+
+            return channel_map;
+        }
     }
 }

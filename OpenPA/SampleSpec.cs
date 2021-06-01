@@ -52,5 +52,17 @@ namespace OpenPA
             // Return the SampleSpec object
             return sampleSpec;
         }
+
+        internal static pa_sample_spec Convert(SampleSpec sampleSpec)
+        {
+            pa_sample_spec sample_spec;
+
+            sample_spec.rate = sampleSpec.Rate;
+            sample_spec.channels = sampleSpec.Channels;
+            sample_spec.format = sampleSpec.Format;
+
+            return sample_spec;
+        }
+
     }
 }

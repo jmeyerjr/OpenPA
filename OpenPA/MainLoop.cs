@@ -39,7 +39,22 @@ namespace OpenPA
 
         internal pa_threaded_mainloop* ptr => mainloop;
 
-        public MainLoop()
+        private static MainLoop? _instance;
+        public static MainLoop Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new MainLoop();
+                    _instance.Start();
+                }
+
+                return _instance;
+            }
+        }
+
+        private MainLoop()
         {
             // Create the mainloop handle
             mainloop = pa_threaded_mainloop.pa_threaded_mainloop_new();

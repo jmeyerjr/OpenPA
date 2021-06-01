@@ -385,6 +385,10 @@ namespace OpenPA
         }
         #endregion        
 
+        internal pa_context* GetContext()
+        {
+            return pa_Context;
+        }
 
         #region Dispose
         protected virtual void Dispose(bool disposing)
