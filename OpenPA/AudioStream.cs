@@ -10,6 +10,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using static OpenPA.Native.pa_stream;
 using static OpenPA.Native.pa_operation;
+using OpenPA.Interop;
+using StreamNotifyCallback = System.Action<OpenPA.AudioStream>;
+using StreamEventCallback = System.Action<OpenPA.AudioStream, string?, OpenPA.PropList>;
+using StreamRequestCallback = System.Action<OpenPA.AudioStream, uint>;
 
 namespace OpenPA
 {
@@ -76,161 +80,155 @@ namespace OpenPA
             Monitor.Exit(this);
         }
 
-        public Task<StreamState> GetStateAsync()
+        public Task<StreamState> GetStateAsync() => Task.Run(GetState);
+
+        public StreamState GetState()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                StreamState state = pa_stream_get_state(stream);
+            StreamState state = pa_stream_get_state(stream);
 
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return state;
-            });
+            return state;
+
         }
 
-        public Task<uint> GetIndexAsync()
+        public Task<uint> GetIndexAsync() => Task.Run(GetIndex);
+
+        public uint GetIndex()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                uint index = pa_stream_get_index(stream);
+            uint index = pa_stream_get_index(stream);
 
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return index;
-            });
+            return index;
         }
 
-        public Task<uint> GetDeviceIndexAsync()
+        public Task<uint> GetDeviceIndexAsync() => Task.Run(GetDeviceIndex);
+
+        public uint GetDeviceIndex()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                uint device = pa_stream_get_device_index(stream);
+            uint device = pa_stream_get_device_index(stream);
 
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return device;
-            });
+            return device;
         }
 
-        public Task<string?> GetDeviceNameAsync()
+        public Task<string?> GetDeviceNameAsync() => Task.Run(GetDeviceName);
+
+        public string? GetDeviceName()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                IntPtr ptr = pa_stream_get_device_name(stream);
+            IntPtr ptr = pa_stream_get_device_name(stream);
 
-                MainLoop.Instance.Unlock();
+            MainLoop.Instance.Unlock();
 
-                string? deviceName = Marshal.PtrToStringUTF8(ptr);
-                Marshal.FreeHGlobal(ptr);
+            string? deviceName = Marshal.PtrToStringUTF8(ptr);
+            Marshal.FreeHGlobal(ptr);
 
-                Monitor.Exit(this);
+            Monitor.Exit(this);
 
-                return deviceName;
-            });
+            return deviceName;
         }
 
-        public Task<bool> GetIsSuspendedAsync()
+        public Task<bool> GetIsSuspendedAsync() => Task.Run(GetIsSuspended);
+
+        public bool GetIsSuspended()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                int sus = pa_stream_is_suspended(stream);
+            int sus = pa_stream_is_suspended(stream);
 
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return sus == 1;
-            });
+            return sus == 1;
         }
 
-        public Task<bool> GetIsCorkedAsync()
+        public Task<bool> GetIsCorkedAsync() => Task.Run(GetIsCorked);
+
+        public bool GetIsCorked()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                int corked = pa_stream_is_corked(stream);
+            int corked = pa_stream_is_corked(stream);
 
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return corked == 1;
-            });
+            return corked == 1;
         }
 
-        public unsafe Task<bool> ConnectPlaybackAsync(string sink, BufferAttr attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
+        public Task<bool> ConnectPlaybackAsync(string sink, BufferAttr attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
+            => Task.Run(() => ConnectPlayback(sink, attr, flags, volume, sync));
+
+        public bool ConnectPlayback(string sink, BufferAttr attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
         {
-            return Task.Run(() =>
+            IntPtr ptr = Marshal.StringToHGlobalAnsi(sink);
+
+            pa_buffer_attr buffer_attr = BufferAttr.Convert(attr);
+
+            pa_cvolume cvolume;
+            pa_cvolume* ptrVol;
+            if (volume != null)
             {
-                IntPtr ptr = Marshal.StringToHGlobalAnsi(sink);
+                cvolume = Volume.Convert(volume);
+                ptrVol = &cvolume;
+            }
+            else
+            {
+                ptrVol = null;
+            }
 
-                pa_buffer_attr buffer_attr = BufferAttr.Convert(attr);
-
-                pa_cvolume cvolume;
-                pa_cvolume* ptrVol;
-                if (volume != null)
-                {
-                    cvolume = Volume.Convert(volume);
-                    ptrVol = &cvolume;
-                }
-                else
-                {
-                    ptrVol = null;
-                }
-
-                pa_stream* sync_stream;
-                if (sync != null)
-                    sync_stream = sync.stream;
-                else
-                    sync_stream = null;
+            pa_stream* sync_stream;
+            if (sync != null)
+                sync_stream = sync.stream;
+            else
+                sync_stream = null;
 
 
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
-                int result = pa_stream_connect_playback(stream, ptr, &buffer_attr, flags, ptrVol, sync_stream);
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+            int result = pa_stream_connect_playback(stream, ptr, &buffer_attr, flags, ptrVol, sync_stream);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                Marshal.FreeHGlobal(ptr);
+            Marshal.FreeHGlobal(ptr);
 
-                return result == 0;
-            });
+            return result == 0;
         }
 
-        public unsafe Task<bool> ConnectRecordAsync(string source, BufferAttr attr, StreamFlags flags)
+        public Task<bool> ConnectRecordAsync(string source, BufferAttr attr, StreamFlags flags) => Task.Run(() => ConnectRecord(source, attr, flags));
+
+        public bool ConnectRecord(string source, BufferAttr attr, StreamFlags flags)
         {
-            return Task.Run(() =>
-            {
-                IntPtr ptr = Marshal.StringToHGlobalAnsi(source);
+            IntPtr ptr = Marshal.StringToHGlobalAnsi(source);
 
-                pa_buffer_attr buffer_attr = BufferAttr.Convert(attr);
+            pa_buffer_attr buffer_attr = BufferAttr.Convert(attr);
 
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
-                int result = pa_stream_connect_record(stream, ptr, &buffer_attr, flags);
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+            int result = pa_stream_connect_record(stream, ptr, &buffer_attr, flags);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return result == 0;
-            });
+            return result == 0;
         }
 
         public bool Disconnect()
@@ -240,67 +238,66 @@ namespace OpenPA
             return result == 0;
         }
 
-        public Task<AudioBuffer?> BeginWriteAsync(uint size)
+        public Task<AudioBuffer?> BeginWriteAsync(uint size) => Task.Run(() => BeginWrite(size));
+
+        public AudioBuffer? BeginWrite(uint size)
         {
-            return Task.Run(() =>
+            IntPtr ptrBuffer = IntPtr.Zero;
+            void* ptr = (void*)ptrBuffer;
+
+            uint nsize = size;
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            int result = pa_stream_begin_write(stream, &ptr, &nsize);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+
+            AudioBuffer? audioBuffer = default;
+            if (result == 0)
             {
-
-                IntPtr ptrBuffer = IntPtr.Zero;
-                void* ptr = (void*)ptrBuffer;
-
-                uint nsize = size;
-
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
-
-                int result = pa_stream_begin_write(stream, &ptr, &nsize);
-
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
-
-                AudioBuffer? audioBuffer = default;
-                if (result == 0)
+                audioBuffer = new()
                 {
-                    audioBuffer = new()
-                    {
-                        Ptr = ptrBuffer,
-                        nSize = nsize
-                    };
-                }
-                return audioBuffer;
-            });
+                    Ptr = ptrBuffer,
+                    nSize = nsize
+                };
+            }
+            return audioBuffer;
         }
 
-        public Task<bool> CancelWriteAsync()
+        public Task<bool> CancelWriteAsync() => Task.Run(CancelWrite);
+
+        public bool CancelWrite()
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
-                int result = pa_stream_cancel_write(stream);
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
-                return result == 0;
-            });
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+            int result = pa_stream_cancel_write(stream);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+            return result == 0;
         }
 
-        public Task<bool> WriteAsync(AudioBuffer audioBuffer)
+        public Task<bool> WriteAsync(AudioBuffer audioBuffer) => Task.Run(() => Write(audioBuffer));
+
+        public bool Write(AudioBuffer audioBuffer)
         {
-            return Task.Run(() =>
-            {
-                Monitor.Enter(this);
-                MainLoop.Instance.Lock();
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
 
-                int result = pa_stream_write(stream, (void*)audioBuffer.Ptr, audioBuffer.nSize, null, 0, SeekMode.RELATIVE);
+            int result = pa_stream_write(stream, (void*)audioBuffer.Ptr, audioBuffer.nSize, null, 0, SeekMode.RELATIVE);
 
-                MainLoop.Instance.Unlock();
-                Monitor.Exit(this);
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
 
-                return result == 0;
-            });
+            return result == 0;
+
         }
 
-        public Task<AudioBuffer?> PeekAsync() => Task.Run(() =>
+        public Task<AudioBuffer?> PeekAsync() => Task.Run(Peek);
+
+        public AudioBuffer? Peek()
         {
             Monitor.Enter(this);
 
@@ -327,9 +324,11 @@ namespace OpenPA
             }
 
             return audioBuffer;
-        });
+        }
 
-        public Task<bool> DropAsync() => Task.Run(() =>
+        public Task<bool> DropAsync() => Task.Run(Drop);
+
+        public bool Drop()
         {
             Monitor.Enter(this);
             MainLoop.Instance.Lock();
@@ -340,9 +339,11 @@ namespace OpenPA
             Monitor.Exit(this);
 
             return result == 0;
-        });
+        }
 
-        public Task<uint> GetWritableSizeAsync() => Task.Run(() =>
+        public Task<uint> GetWritableSizeAsync() => Task.Run(GetWritableSize);
+
+        public uint GetWritableSize()
         {
             Monitor.Enter(this);
             MainLoop.Instance.Lock();
@@ -354,9 +355,11 @@ namespace OpenPA
 
             return nsize;
 
-        });
+        }
 
-        public Task<uint> GetReadableSizeAsync() => Task.Run(() =>
+        public Task<uint> GetReadableSizeAsync() => Task.Run(GetReadableSize);
+
+        public uint GetReadableSize()
         {
             Monitor.Enter(this);
             MainLoop.Instance.Lock();
@@ -367,52 +370,58 @@ namespace OpenPA
             Monitor.Exit(this);
 
             return nsize;
-        });
+        }
 
-        static OperationState drain_state;
-        public Task DrainAsync() => Task.Run(() =>
+        public Task DrainAsync() => Task.Run(Drain);
+
+        public void Drain()
         {
             [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
             static void Callback(pa_stream* stream, int success, void* userdata)
             {
-                drain_state = OperationState.DONE;
+                OperationState* state = (OperationState*)userdata;
+                *state = OperationState.DONE;
 
                 MainLoop.Instance.Signal(0);
             }
 
             Monitor.Enter(this);
-            drain_state = OperationState.RUNNING;
+            OperationState op_state = OperationState.RUNNING;
+            void* pstate = &op_state;
 
             MainLoop.Instance.Lock();
-            pa_operation* op = pa_stream_drain(stream, &Callback, null);
+            pa_operation* op = pa_stream_drain(stream, &Callback, pstate);
 
-            while (drain_state == OperationState.RUNNING)
+            while (op_state == OperationState.RUNNING)
                 MainLoop.Instance.Wait();
 
             pa_operation_unref(op);
 
             MainLoop.Instance.Unlock();
             Monitor.Exit(this);
-        });
+        }
 
-        static OperationState update_timing_state;
-        public Task UpdateTimingInfoAsync() => Task.Run(() =>
+        public Task UpdateTimingInfoAsync() => Task.Run(UpdateTimingInfo);
+
+        public void UpdateTimingInfo()
         {
             [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
             static void Callback(pa_stream* stream, int success, void* userdata)
             {
-                update_timing_state = OperationState.DONE;
+                OperationState* state = (OperationState*)userdata;
+                *state = OperationState.DONE;
 
                 MainLoop.Instance.Signal(0);
             }
 
             Monitor.Enter(this);
-            update_timing_state = OperationState.RUNNING;
+            OperationState op_state = OperationState.RUNNING;
+            void* pstate = &op_state;
 
             MainLoop.Instance.Lock();
-            pa_operation* op = pa_stream_update_timing_info(stream, &Callback, null);
+            pa_operation* op = pa_stream_update_timing_info(stream, &Callback, pstate);
 
-            while (update_timing_state == OperationState.RUNNING)
+            while (op_state == OperationState.RUNNING)
                 MainLoop.Instance.Wait();
 
             pa_operation_unref(op);
@@ -420,21 +429,23 @@ namespace OpenPA
             MainLoop.Instance.Unlock();
             Monitor.Exit(this);
 
-        });
+        }
 
-        public Task SetStateCallbackAsync(Action<AudioStream> callback) => Task.Run(() =>
+        public Task SetStateCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetStartedCallback(callback));
+
+        public void SetStateCallback(StreamNotifyCallback callback)
         {
 
             [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
             static void Callback(pa_stream* stream, void* userdata)
             {
-                Action<AudioStream> action = Marshal.GetDelegateForFunctionPointer<Action<AudioStream>>((IntPtr)userdata);
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
 
                 using (AudioStream audioStream = new(stream))
                 {
                     action(audioStream);
                 }
-               
+
             }
 
             IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
@@ -446,7 +457,394 @@ namespace OpenPA
 
             MainLoop.Instance.Unlock();
             Monitor.Exit(this);
-        });
+        }
+
+        public Task SetWriteCallbackAsync(StreamRequestCallback callback) => Task.Run(() => SetWriteCallback(callback));
+
+        public void SetWriteCallback(StreamRequestCallback callback)
+        {
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, uint nsize, void* userdata)
+            {
+                StreamRequestCallback action = Marshal.GetDelegateForFunctionPointer<StreamRequestCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream, nsize);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_write_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetReadCallbackAsync(StreamRequestCallback callback) => Task.Run(() => SetReadCallback(callback));
+
+        public void SetReadCallback(StreamRequestCallback callback)
+        {
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, uint nsize, void* userdata)
+            {
+                StreamRequestCallback action = Marshal.GetDelegateForFunctionPointer<StreamRequestCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream, nsize);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_read_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetOverflowCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetOverflowCallback(callback));
+
+        public void SetOverflowCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_overflow_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task<long> GetUnderflowIndexAsync() => Task.Run(GetUnderflowIndex);
+
+        public long GetUnderflowIndex()
+        {
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            long result = pa_stream_get_underflow_index(stream);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+
+            return result;
+        }
+
+        public Task SetUnderflowCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetUnderflowCallback(callback));
+
+        public void SetUnderflowCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_underflow_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetStartedCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetStartedCallback(callback));
+
+        public void SetStartedCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_started_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetLatencyUpdateCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetLatencyUpdateCallback(callback));
+
+        public void SetLatencyUpdateCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_latency_update_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetMovedCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetMovedCallback(callback));
+
+        public void SetMovedCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_moved_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetSuspendedCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetSuspendedCallback(callback));
+
+        public void SetSuspendedCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_suspended_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetEventCallbackAsync(StreamEventCallback callback) => Task.Run(() => SetEventCallback(callback));
+
+        public void SetEventCallback(StreamEventCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, IntPtr ptrName, pa_proplist* pl, void* userdata)
+            {
+                string? name = Marshal.PtrToStringUTF8(ptrName);
+                PropList propList = PropList.Convert(pl);
+
+                StreamEventCallback action = Marshal.GetDelegateForFunctionPointer<StreamEventCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream, name, propList);
+                }
+
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_event_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task SetBufferAttrCallbackAsync(StreamNotifyCallback callback) => Task.Run(() => SetBufferAttrCallback(callback));
+
+        public void SetBufferAttrCallback(StreamNotifyCallback callback)
+        {
+
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, void* userdata)
+            {
+                StreamNotifyCallback action = Marshal.GetDelegateForFunctionPointer<StreamNotifyCallback>((IntPtr)userdata);
+
+                using (AudioStream audioStream = new(stream))
+                {
+                    action(audioStream);
+                }
+
+            }
+
+            IntPtr func = Marshal.GetFunctionPointerForDelegate(callback);
+
+            Monitor.Enter(this);
+            MainLoop.Instance.Lock();
+
+            pa_stream_set_buffer_attr_callback(stream, &Callback, (void*)func);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task CorkAsync(bool pause) => Task.Run(() => Cork(pause));
+
+        private void Cork(bool pause)
+        {
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, int success, void* userdata)
+            {
+                OperationState* state = (OperationState*)userdata;
+                *state = OperationState.DONE;
+
+                MainLoop.Instance.Signal(0);
+            }
+
+            Monitor.Enter(this);
+            OperationState op_state = OperationState.RUNNING;
+            void* pstate = &op_state;
+
+            int b = pause ? 1 : 0;
+
+            MainLoop.Instance.Lock();
+            pa_operation* op = pa_stream_cork(stream, b, &Callback, pstate);
+
+            while (op_state == OperationState.RUNNING)
+                MainLoop.Instance.Wait();
+
+            pa_operation_unref(op);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+        public Task FlushAsync => Task.Run(Flush);
+
+        public void Flush()
+        {
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, int success, void* userdata)
+            {
+                OperationState* state = (OperationState*)userdata;
+                *state = OperationState.DONE;
+
+                MainLoop.Instance.Signal(0);
+            }
+
+            Monitor.Enter(this);
+            OperationState op_state = OperationState.RUNNING;
+            void* pstate = &op_state;
+
+            MainLoop.Instance.Lock();
+            pa_operation* op = pa_stream_flush(stream, &Callback, pstate);
+
+            while (op_state == OperationState.RUNNING)
+                MainLoop.Instance.Wait();
+
+            pa_operation_unref(op);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
+
+
+        public Task PreBufAsync() => Task.Run(PreBuf);
+
+        public void PreBuf()
+        {
+            [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
+            static void Callback(pa_stream* stream, int success, void* userdata)
+            {
+                OperationState* state = (OperationState*)userdata; 
+                *state = OperationState.DONE;
+
+                MainLoop.Instance.Signal(0);
+            }
+
+            Monitor.Enter(this);
+            OperationState op_state = OperationState.RUNNING;
+            void* pstate = &op_state;
+
+            MainLoop.Instance.Lock();
+            pa_operation* op = pa_stream_prebuf(stream, &Callback, pstate);
+
+            while (op_state == OperationState.RUNNING)
+                MainLoop.Instance.Wait();
+
+            pa_operation_unref(op);
+
+            MainLoop.Instance.Unlock();
+            Monitor.Exit(this);
+        }
 
         protected virtual void Dispose(bool disposing)
         {

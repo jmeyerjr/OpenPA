@@ -356,7 +356,7 @@ namespace OpenPA.Native
         /** Set the callback function that is called when a buffer underflow happens. (Only for playback streams) */
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<
-            pa_stream,
+            pa_stream*,
             // void (*pa_stream_notify_cb_t)(pa_stream* p, void* userdata)
             delegate* unmanaged[Cdecl]<pa_stream*, void*, void>,
             void*,
@@ -369,7 +369,7 @@ namespace OpenPA.Native
         * 0.9.11 */
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<
-            pa_stream,
+            pa_stream*,
             // void (*pa_stream_notify_cb_t)(pa_stream* p, void* userdata)
             delegate* unmanaged[Cdecl]<pa_stream*, void*, void>,
             void*,
@@ -432,7 +432,7 @@ namespace OpenPA.Native
         * pa_stream_set_moved_callback() as well. \since 0.9.15 */
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<
-            pa_stream,
+            pa_stream*,
             // void (*pa_stream_notify_cb_t)(pa_stream* p, void* userdata)
             delegate* unmanaged[Cdecl]<pa_stream*, void*, void>,
             void*,
