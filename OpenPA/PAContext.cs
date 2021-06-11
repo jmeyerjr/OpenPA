@@ -106,9 +106,9 @@ namespace OpenPA
         /// <summary>
         /// Connects to a PulseAudio server
         /// </summary>
-        /// <param name="server">Server address (i.e. "tcp:localhost")</param>
+        /// <param name="server">Server address (i.e. "tcp:localhost") or NULL for the default server</param>
         /// <returns>True if successful</returns>
-        public Task<bool> ConnectAsync(string server) => Task<bool>.Run(() =>
+        public Task<bool> ConnectAsync(string? server) => Task<bool>.Run(() =>
         {
 
             #region Local Functions
@@ -134,17 +134,26 @@ namespace OpenPA
             }
 
             // Helper for connect call
-            bool Connect(string server)
+            bool Connect(string? server)
             {
-                // Copy the server address to unmanaged memory
-                IntPtr ptr = Marshal.StringToHGlobalAnsi(server);
+                IntPtr ptr = IntPtr.Zero;
+
+                if (String.IsNullOrEmpty(server) == false)
+                {
+                    // Copy the server address to unmanaged memory
+                    ptr = Marshal.StringToHGlobalAnsi(server);
+                }
 
                 // Call the native function to connect to the server,
-                // passing in the server address
+                // passing in the server address,
+                // if the address is NULL, connect to the default server.
                 var result = pa_context.pa_context_connect(pa_Context, ptr, ContextFlags.NOFLAGS, null);
 
-                // Free the unmanaged memory buffer
-                Marshal.FreeHGlobal(ptr);
+                if (ptr != IntPtr.Zero)
+                {
+                    // Free the unmanaged memory buffer
+                    Marshal.FreeHGlobal(ptr);
+                }
 
                 // Allocate unmanaged memory for the current connection state
                 // and initialize it to zero
