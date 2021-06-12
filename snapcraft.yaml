@@ -12,6 +12,7 @@ apps:
     plugs:
     - network
     - audio-playback
+    - pulseaudio
 
 parts:
   xwintest:
@@ -30,3 +31,4 @@ parts:
 environment:
   LD_LIBRARY_PATH: ${LD_LIBRARY_PATH}:${SNAP}/lib/:${SNAP}/lib/${SNAPCRAFT_ARCH_TRIPLET}/:${SNAP}/usr/lib/:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/
   PATH: $SNAP/bin/:$SNAP/usr/bin/:${PATH}
+  PULSE_SERVER: /var/run/pulse/native

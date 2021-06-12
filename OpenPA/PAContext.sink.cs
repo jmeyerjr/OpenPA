@@ -248,12 +248,12 @@ namespace OpenPA
             static unsafe void Callback(pa_context* ctx, pa_sink_info* info, int eol, void* userdata)
             {
                 // Test for the end of list
-                if (eol <= 0)
+                if (eol == 0)
                 {
                     // Not the end of the list
 
-                    // Copy the sink_info data to the static structure
-                    //sink_info = Marshal.PtrToStructure<pa_sink_info>((IntPtr)info);
+                    // Copy the sink_info data to the static structure                    
+                    sink_info = info;
 
                     // Flag that there is valid data
                     gotSink = CallbackState.HasData;
@@ -300,21 +300,35 @@ namespace OpenPA
                     while (gotSink == CallbackState.Pending)
                         _mainLoop.Wait();
 
-                    // Dereference the pa_operation
-                    pa_operation.pa_operation_unref(op);
-
                     // If the callback returned data
-                    if (gotSink == CallbackState.HasData)
+                    if (gotSink == CallbackState.HasData && sink_info != null)
                     {
+                        
                         // Copy the unmanaged sink_info structure into a SinkInfo object
                         sinks.Add(SinkInfo.Convert(*sink_info));
 
+                        
                         // Allow PulseAudio to free the sink_info
                         _mainLoop.Accept();
+
+                        
+                        _mainLoop.Wait();
+
+                        
+                        // Dereference the pa_operation
+                        pa_operation.pa_operation_unref(op);
+
+                        continue;
+                    }
+                    else
+                    {
+                        pa_operation.pa_operation_unref(op);
+                        break;
                     }
 
                 } while (gotSink != CallbackState.Success);
 
+                
                 // Unlock the mainloop
                 _mainLoop.Unlock();
 
