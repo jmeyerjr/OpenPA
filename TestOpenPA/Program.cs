@@ -11,7 +11,7 @@ namespace TestOpenPA
     class Program
     {
 #if DEBUG
-        static string? addr = "tcp:10.1.10.102";
+        static string? addr = "tcp:10.1.10.12";        
 #else
         //static string addr = "unix:/run/user/1000/pulse/native";
         static string? addr = null;
@@ -79,7 +79,13 @@ namespace TestOpenPA
                     }
                     
                 }
-                //var sources = await context.GetSourceInfoListAsync();
+
+                var s = await context.GetSinkInfoAsync(0);
+                var s1 = await context.GetSinkInfoAsync("output");
+
+                var sources = await context.GetSourceInfoListAsync();
+                var src = await context.GetSourceInfoAsync(0);
+                var src1 = await context.GetSourceInfoAsync(serverInfo.DefaultSourceName ?? String.Empty);
                 //Console.WriteLine("Got Source");
             }
             context.Disconnect();            
