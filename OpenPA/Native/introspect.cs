@@ -85,7 +85,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
             uint,
-            delegate* unmanaged<pa_context*, pa_sink_info*, int, void*, void>,            
+            delegate* unmanaged[Cdecl]<pa_context*, pa_sink_info*, int, void*, void>,            
             void*,
             pa_operation*> pa_context_get_sink_info_by_index;
 
@@ -93,7 +93,7 @@ namespace OpenPA.Native
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
-            delegate* unmanaged<pa_context*, pa_sink_info*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, pa_sink_info*, int, void*, void>,
             void*,
             pa_operation*> pa_context_get_sink_info_list;
 
