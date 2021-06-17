@@ -102,7 +102,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
             uint, pa_cvolume*,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_set_sink_volume_by_index;
 
@@ -112,7 +112,7 @@ namespace OpenPA.Native
             pa_context*,
             IntPtr,
             pa_cvolume*,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_set_sink_volume_by_name;
 
@@ -122,7 +122,7 @@ namespace OpenPA.Native
             pa_context*,
             uint,
             int,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_set_sink_mute_by_index;
 
@@ -132,7 +132,7 @@ namespace OpenPA.Native
             pa_context*,
             IntPtr,
             int,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_set_sink_mute_by_name;
 
@@ -142,7 +142,7 @@ namespace OpenPA.Native
             pa_context*,
             IntPtr,
             int,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_suspend_sink_by_name;
 
@@ -152,7 +152,7 @@ namespace OpenPA.Native
             pa_context*,
             uint,
             int,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_suspend_sink_by_index;
 
@@ -162,7 +162,7 @@ namespace OpenPA.Native
             pa_context*,
             uint,
             IntPtr,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_set_sink_port_by_index;
 
@@ -172,7 +172,7 @@ namespace OpenPA.Native
             pa_context*,
             IntPtr,
             IntPtr,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_set_sink_port_by_name;
 
