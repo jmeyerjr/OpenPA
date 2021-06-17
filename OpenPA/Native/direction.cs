@@ -21,7 +21,7 @@ namespace OpenPA.Native
 
         // Return a textual representation of the direction.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_direction_t, IntPtr> ps_direction_to_string;
+        public static delegate* unmanaged[Cdecl]<pa_direction_t, IntPtr> pa_direction_to_string;
 
     }
 }

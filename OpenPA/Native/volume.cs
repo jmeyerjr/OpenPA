@@ -296,7 +296,7 @@ namespace OpenPA.Native
         * this channel map the volume will not be modified. See
         * pa_channel_map_can_fade(). Will return NULL on error. \since 0.9.15 */
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_cvolume*,pa_channel_map*,float,pa_cvolume*> ps_cvolume_set_fade;
+        public static delegate* unmanaged[Cdecl]<pa_cvolume*,pa_channel_map*,float,pa_cvolume*> pa_cvolume_set_fade;
 
         /** Calculate a 'lfe balance' value for the specified volume with
         * the specified channel map. The return value will range from

@@ -31,7 +31,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<pa_signal_event*, void> pa_signal_free;
         // Set a function that is called when the signal event source is destroyed. Use this to free the userdata argument if required        
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_signal_event*, void> pa_signal_set_destory;
+        public static delegate* unmanaged[Cdecl]<pa_signal_event*, void> pa_signal_set_destroy;
     }
 
     // Callback for signal events

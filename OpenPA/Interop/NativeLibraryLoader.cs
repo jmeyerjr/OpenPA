@@ -30,9 +30,12 @@ namespace OpenPA.Interop
                         {
                             string funcName = field.Name;
                             if (NativeLibrary.TryGetExport(libHandle, funcName, out IntPtr address))
-                            {
-                                Console.WriteLine("Func: {0} [0x{1:x}]", funcName, address);
+                            {                                
                                 field.SetValue(null, address);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Function {0} not found in library {1}.", funcName, library);
                             }
                         }
                                 

@@ -135,7 +135,7 @@ namespace OpenPA.Native
         // code on failure. If the sample rate property is not set at all, returns a
         // negative integer.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_format_info*,uint*,int> ps_format_info_sample_rate;
+        public static delegate* unmanaged[Cdecl]<pa_format_info*,uint*,int> pa_format_info_get_rate;
 
         // Gets the channel cound store in the format info. Returns a negative error
         // code on failure. If the channels property is not set at all, returns a
@@ -151,7 +151,7 @@ namespace OpenPA.Native
 
         // Sets an integer property on the given format info.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_format_info*, IntPtr, int, void> ps_format_info_set_prop_int;
+        public static delegate* unmanaged[Cdecl]<pa_format_info*, IntPtr, int, void> pa_format_info_set_prop_int;
 
         // Sets a property with a list of integer values ont the given format info.
         [NativeMethod]

@@ -474,7 +474,7 @@ namespace OpenPA.Native
             uint,
             delegate* unmanaged<pa_context*, int, void*, void>,
             void*,
-            pa_operation*> pa_contet_unload_module;
+            pa_operation*> pa_context_unload_module;
 
     }
 }

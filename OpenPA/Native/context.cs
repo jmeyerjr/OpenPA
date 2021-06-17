@@ -95,7 +95,7 @@ namespace OpenPA.Native
             pa_context*,
             delegate*<pa_context*, int, void*, void>,
             void*,
-            pa_operation*> ps_context_exit_daemon;
+            pa_operation*> pa_context_exit_daemon;
 
         // Set the name of the default sink.
         [NativeMethod]
@@ -134,7 +134,7 @@ namespace OpenPA.Native
 
         // Return the protocol version of the library.
         [NativeMethod]
-        public static delegate* unmanaged[Cdecl]<pa_context*, uint> pa_contet_get_protocol_version;
+        public static delegate* unmanaged[Cdecl]<pa_context*, uint> pa_context_get_protocol_version;
 
         // Return the protocol version of the connected server.
         // Returns PA_INVALID_INDEX on error.
