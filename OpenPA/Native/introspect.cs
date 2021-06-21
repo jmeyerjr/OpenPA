@@ -430,14 +430,6 @@ namespace OpenPA.Native
         public pa_proplist* proplist;
     }
 
-    // Callback prototype for pa_context_get_module_info() and friends
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    unsafe delegate void pa_module_info_cb_t(pa_context* c, pa_module_info* i, int eol, void* userdata);
-
-    // Callback prototype for pa_context_load_module()
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    unsafe delegate void pa_context_info_cb_t(pa_context* c, uint idx, void* userdata);
-
     internal unsafe partial struct pa_context
     {
         // Get some information about a module by its index
@@ -445,7 +437,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
             uint,
-            delegate* unmanaged<pa_context*, pa_module_info*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, pa_module_info*, int, void*, void>,
             void*,
             pa_operation*> pa_context_get_module_info;
 
@@ -453,7 +445,7 @@ namespace OpenPA.Native
         [NativeMethod]
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
-            delegate* unmanaged<pa_context*, pa_module_info*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, pa_module_info*, int, void*, void>,
             void*,
             pa_operation*> pa_context_get_module_info_list;
 
@@ -463,7 +455,7 @@ namespace OpenPA.Native
             pa_context*,
             IntPtr,
             IntPtr,
-            delegate* unmanaged<pa_context*, uint, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, uint, void*, void>,
             void*,
             pa_operation*> pa_context_load_module;
 
@@ -472,7 +464,7 @@ namespace OpenPA.Native
         public static delegate* unmanaged[Cdecl]<
             pa_context*,
             uint,
-            delegate* unmanaged<pa_context*, int, void*, void>,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_unload_module;
 
