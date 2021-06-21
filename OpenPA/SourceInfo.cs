@@ -87,15 +87,40 @@ namespace OpenPA
         /// Card index or PA_INVALID_INDEX
         /// </summary>
         public uint Card { get; init; }
-        //public List<SourcePortInfo>? Ports { get; init; }
-        //public SourcePortInfo? ActivePort { get; init; }
+        /// <summary>
+        /// Available profiles
+        /// </summary>
+        public IReadOnlyList<SourcePortInfo>? Ports { get; init; }
+        /// <summary>
+        /// Active profile
+        /// </summary>
+        public SourcePortInfo? ActivePort { get; init; }
         /// <summary>
         /// List of formats supported by this source
         /// </summary>
-        public List<FormatInfo>? Formats { get; init; }
+        public IReadOnlyList<FormatInfo>? Formats { get; init; }
 
         internal unsafe static SourceInfo Convert(pa_source_info source_Info)
         {
+            // Create list of ports
+            List<SourcePortInfo> ports = new();
+            if (source_Info.n_ports > 0)
+            {
+                // Point to the first port in the list
+                pa_source_port_info* pi = *source_Info.ports;
+
+                // Loop for n_ports times
+                for(int i = 0; i < source_Info.n_ports; i++)
+                {
+                    // Copy the port info into a managed class and add is
+                    // to the list
+                    ports.Add(SourcePortInfo.Convert(*pi));
+
+                    // Move to the next port in the list
+                    pi++;
+                }
+            }
+
 
             // Create list of formats
             List<FormatInfo> formats = new();
@@ -107,7 +132,7 @@ namespace OpenPA
                 // Loop for n_formats times
                 for (int i = 0; i < source_Info.n_formats; i++)
                 {
-                    // Copy the format into a managed structure and add it
+                    // Copy the format into a managed class and add it
                     // to the list
                     formats.Add(FormatInfo.Convert(*fi));
 
@@ -138,6 +163,8 @@ namespace OpenPA
                 VolumeSteps = source_Info.n_volume_steps,
                 Card = source_Info.card,    
                 Formats = formats,
+                Ports = ports,
+                ActivePort = SourcePortInfo.Convert(*source_Info.active_port),
             };
 
             return sourceInfo;
