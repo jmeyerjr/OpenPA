@@ -469,4 +469,47 @@ namespace OpenPA.Native
             pa_operation*> pa_context_unload_module;
 
     }
+
+    internal unsafe struct pa_client_info
+    {
+        // Index of this client
+        public uint index;
+        // Name of this client
+        public IntPtr name;
+        // Index of the owning module
+        public uint owner_module;
+        // Drive name
+        public IntPtr driver;
+        // Property list
+        public pa_proplist* proplist;
+    }
+
+    internal unsafe partial struct pa_context
+    {
+        /** Get information about a client by its index */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            uint, 
+            delegate* unmanaged[Cdecl]<pa_context*, pa_client_info*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_get_client_info;
+
+        /** Get the complete client list */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,            
+            delegate* unmanaged[Cdecl]<pa_context*, pa_client_info*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_get_client_info_list;
+
+        /** Kill a client. */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            uint,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_kill_client;
+    }
 }

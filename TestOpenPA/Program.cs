@@ -11,7 +11,7 @@ namespace TestOpenPA
     class Program
     {
 #if DEBUG
-        static string? addr = "tcp:10.1.10.102";        
+        static string? addr = "tcp:10.1.10.102";
 #else
         //static string addr = "unix:/run/user/1000/pulse/native";
         static string? addr = null;
@@ -31,11 +31,11 @@ namespace TestOpenPA
 
         static async Task program()
         {
-            PulseAudio.Init();            
+            PulseAudio.Init();
 
             PAContext context = new(MainLoop.Instance, "TestApp");
             var t = await context.ConnectAsync(addr);
-            
+
 
             Console.WriteLine("Connection succeeded: {0}", t);
             if (!t)
@@ -66,32 +66,41 @@ namespace TestOpenPA
                     Console.WriteLine();
                 }
 
-                if (!String.IsNullOrWhiteSpace(serverInfo.DefaultSinkName))
+                Console.WriteLine("Sinks:");
+                var sinks = await context.GetSinkInfoListAsync();
+                if (sinks != null)
                 {
-                    //var sink = await context.GetSinkInfoAsync(serverInfo.DefaultSinkName);
-                    var sinks = await context.GetSinkInfoListAsync();
-                    if (sinks != null)
+                    foreach (var sink in sinks)
                     {
-                        foreach(var sink in sinks)
-                        {
-                            Console.WriteLine("{0}", sink?.Name);
-                        }
+                        Console.WriteLine("{0}", sink?.Name);
                     }
-                    
                 }
+
+                Console.WriteLine();
 
                 Console.WriteLine("Modules:");
                 var modules = await context.GetModuleInfoListAsync();
                 if (modules != null)
                 {
-                    foreach(var module in modules)
+                    foreach (var module in modules)
                     {
                         Console.WriteLine("{0}", module?.Name);
                     }
                 }
 
+                Console.WriteLine();
+
+                Console.WriteLine("Clients:");
+                var clients = await context.GetClientInfoListAsync();
+                if (clients != null)
+                {
+                    foreach(var client in clients)
+                    {
+                        Console.WriteLine("{0}", client?.Name);
+                    }
+                }
             }
-            context.Disconnect();            
+            context.Disconnect();
             context.Dispose();
 
             MainLoop.Instance.Stop();
