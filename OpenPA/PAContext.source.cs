@@ -51,15 +51,7 @@ namespace OpenPA
             }
 
         }
-
-        // Success callback for operations on sources
-        [UnmanagedCallersOnly(CallConvs = new Type[] { typeof(CallConvCdecl) })]
-        static unsafe void SourceSuccessCallback(pa_context* ctx, int success, void* userdata)
-        {
-            *((bool*)userdata) = success == 1;
-
-            MainLoop.Instance.Signal(0);
-        }
+        
         #endregion
 
         /// <summary>
@@ -292,7 +284,7 @@ namespace OpenPA
             pa_cvolume cvolume = Volume.Convert(volume);
 
             // Invoke the operation
-            pa_operation* op = pa_context_set_source_volume_by_index(pa_Context, index, &cvolume, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_set_source_volume_by_index(pa_Context, index, &cvolume, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -343,7 +335,7 @@ namespace OpenPA
             pa_cvolume cvolume = Volume.Convert(volume);
 
             // Invoke the operation
-            pa_operation* op = pa_context_set_source_volume_by_name(pa_Context, name, &cvolume, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_set_source_volume_by_name(pa_Context, name, &cvolume, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -391,7 +383,7 @@ namespace OpenPA
             bool result = false;            
 
             // Invoke the operation
-            pa_operation* op = pa_context_set_source_mute_by_index(pa_Context, index, mute ? 1 : 0, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_set_source_mute_by_index(pa_Context, index, mute ? 1 : 0, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -439,7 +431,7 @@ namespace OpenPA
             bool result = false;
             
             // Invoke the operation
-            pa_operation* op = pa_context_set_source_mute_by_name(pa_Context, name, mute ? 1 : 0, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_set_source_mute_by_name(pa_Context, name, mute ? 1 : 0, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -487,7 +479,7 @@ namespace OpenPA
             bool result = false;
 
             // Invoke the operation
-            pa_operation* op = pa_context_suspend_source_by_index(pa_Context, index, suspend ? 1 : 0, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_suspend_source_by_index(pa_Context, index, suspend ? 1 : 0, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -535,7 +527,7 @@ namespace OpenPA
             bool result = false;
 
             // Invoke the operation
-            pa_operation* op = pa_context_suspend_source_by_name(pa_Context, name, suspend ? 1 : 0, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_suspend_source_by_name(pa_Context, name, suspend ? 1 : 0, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -586,7 +578,7 @@ namespace OpenPA
             bool result = false;
 
             // Invoke the operation
-            pa_operation* op = pa_context_set_source_port_by_index(pa_Context, index, profileName, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_set_source_port_by_index(pa_Context, index, profileName, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -640,7 +632,7 @@ namespace OpenPA
             bool result = false;
 
             // Invoke the operation
-            pa_operation* op = pa_context_set_source_port_by_name(pa_Context, name, profileName, &SourceSuccessCallback, &result);
+            pa_operation* op = pa_context_set_source_port_by_name(pa_Context, name, profileName, &SuccessCallback, &result);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)

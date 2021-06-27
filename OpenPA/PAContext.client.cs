@@ -33,14 +33,6 @@ namespace OpenPA
             }
         }
 
-        [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-        static void KillClientCallback(pa_context* ctx, int result, void* userdata)
-        {
-            *((bool*)userdata) = result == 1;
-
-            MainLoop.Instance.Signal(0);
-
-        }
         #endregion
 
         public Task<ClientInfo?> GetClientInfoAsync(uint index) => Task.Run(() => GetClientInfo(index));
@@ -165,7 +157,7 @@ namespace OpenPA
             bool success = false;
 
             // Invoke the operation
-            pa_operation* op = pa_context_kill_client(pa_Context, index, &KillClientCallback, &success);
+            pa_operation* op = pa_context_kill_client(pa_Context, index, &SuccessCallback, &success);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)

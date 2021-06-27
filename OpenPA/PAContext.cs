@@ -392,7 +392,18 @@ namespace OpenPA
 
 
         }
-        #endregion        
+        #endregion
+
+        #region Callback
+        [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+        static void SuccessCallback(pa_context* ctx, int result, void* userdata)
+        {
+            *((bool*)userdata) = result == 1;
+
+            MainLoop.Instance.Signal(0);
+        }
+
+        #endregion
 
         internal pa_context* GetContext()
         {

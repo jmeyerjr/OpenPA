@@ -45,14 +45,7 @@ namespace OpenPA
             }
 
         }
-
-        [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-        static unsafe void SinkSuccessCallback(pa_context* ctx, int success, void* userdata)
-        {            
-            *((bool*)userdata) = success == 1;
-
-            MainLoop.Instance.Signal(0);
-        }
+        
         #endregion
 
         /// <summary>
@@ -279,7 +272,7 @@ namespace OpenPA
             pa_cvolume cvolume = Volume.Convert(volume);            
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_set_sink_volume_by_index(pa_Context, index, &cvolume, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_set_sink_volume_by_index(pa_Context, index, &cvolume, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -330,7 +323,7 @@ namespace OpenPA
             pa_cvolume cvolume = Volume.Convert(volume);
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_set_sink_volume_by_name(pa_Context, name, &cvolume, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_set_sink_volume_by_name(pa_Context, name, &cvolume, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -378,7 +371,7 @@ namespace OpenPA
             bool result = false;
             
             // Set the volume of the sink
-            pa_operation* op = pa_context_set_sink_mute_by_index(pa_Context, index, mute ? 1 : 0, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_set_sink_mute_by_index(pa_Context, index, mute ? 1 : 0, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -426,7 +419,7 @@ namespace OpenPA
             bool result = false;            
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_set_sink_mute_by_name(pa_Context, name, mute ? 1 : 0, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_set_sink_mute_by_name(pa_Context, name, mute ? 1 : 0, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -474,7 +467,7 @@ namespace OpenPA
             bool result = false;
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_suspend_sink_by_index(pa_Context, index, suspend ? 1 : 0, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_suspend_sink_by_index(pa_Context, index, suspend ? 1 : 0, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -522,7 +515,7 @@ namespace OpenPA
             bool result = false;
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_suspend_sink_by_name(pa_Context, name, suspend ? 1 : 0, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_suspend_sink_by_name(pa_Context, name, suspend ? 1 : 0, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -573,7 +566,7 @@ namespace OpenPA
             bool result = false;            
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_set_sink_port_by_index(pa_Context, index, profileName, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_set_sink_port_by_index(pa_Context, index, profileName, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
@@ -627,7 +620,7 @@ namespace OpenPA
             bool result = false;
 
             // Set the volume of the sink
-            pa_operation* op = pa_context_set_sink_port_by_name(pa_Context, name, profileName, &SinkSuccessCallback, &result);
+            pa_operation* op = pa_context_set_sink_port_by_name(pa_Context, name, profileName, &SuccessCallback, &result);
 
             // Wait for the operation to complete
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)

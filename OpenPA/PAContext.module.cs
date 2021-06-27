@@ -40,13 +40,6 @@ namespace OpenPA
             MainLoop.Instance.Signal(0);
         }
 
-        [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-        static void UnloadModuleCallback(pa_context* ctx, int result, void* userdata)
-        {
-            *((bool*)userdata) = result == 1;
-
-            MainLoop.Instance.Signal(0);
-        }
         #endregion
 
         /// <summary>
@@ -257,7 +250,7 @@ namespace OpenPA
             bool success = false;
 
             // Invoke the operation
-            pa_operation* op = pa_context_unload_module(pa_Context, index, &UnloadModuleCallback, &success);
+            pa_operation* op = pa_context_unload_module(pa_Context, index, &SuccessCallback, &success);
 
             // Wait until the operation completes
             while (pa_operation_get_state(op) == Enums.OperationState.RUNNING)
