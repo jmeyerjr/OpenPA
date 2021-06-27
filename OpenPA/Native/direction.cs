@@ -12,7 +12,7 @@ namespace OpenPA.Native
     internal unsafe struct pa_direction
     {
         public const uint PA_DIRECTION_OUTPUT = 0x0001;
-        public const uint PA_SIRECTION_INPUT = 0x0002;
+        public const uint PA_DIRECTION_INPUT = 0x0002;
 
         /** Return non-zero if the given value is a valid direction (either input,
         * output or bidirectional). \since 6.0 */

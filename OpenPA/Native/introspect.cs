@@ -11,6 +11,7 @@ using pa_sink_state_t = OpenPA.Enums.SinkState;
 using pa_source_flags_t = OpenPA.Enums.SourceFlags;
 using pa_source_state_t = OpenPA.Enums.SourceState;
 using System.Runtime.InteropServices;
+using OpenPA.Enums;
 
 namespace OpenPA.Native
 {
@@ -511,5 +512,82 @@ namespace OpenPA.Native
             delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
             void*,
             pa_operation*> pa_context_kill_client;
+    }
+
+    /** Stores information about cards. Please note that this structure
+    * can be extended as part of evolutionary API updates at any time in
+    * any new release.  \since 0.9.15 */
+    internal unsafe struct pa_card_info
+    {
+        // Index of this card
+        public uint index;
+        // Name of this card
+        public IntPtr name;
+        // Index of the owning module, or PA_INVALID_INDEX
+        public uint owner_module;
+        // Driver name
+        public IntPtr driver;
+        // Number of entries in the profile array
+        public uint n_profiles;
+        // deprecated
+        public void* profiles;
+        // deprecated
+        public void* active_profile;
+        // Property list
+        public pa_proplist* proplist;
+        // Number of entries in port array
+        public uint n_ports;
+        // Array of pointers to ports, or NULL. Array is terminated by an entry set to NULL.
+        public pa_card_port_info** ports;
+        // Array of pointers to available profiles, or NULL. Array is terminated by an entry set to NULL.
+        public pa_card_profile_info2** profiles2;
+        // Pointer to active profile in the array, or NULL.
+        public pa_card_profile_info2* active_profile2;
+    }
+
+    /** Stores information about a specific port of a card.  Please
+    * note that this structure can be extended as part of evolutionary
+    * API updates at any time in any new release. \since 2.0 */
+    internal unsafe struct pa_card_port_info
+    {
+        // Name of this port
+        public IntPtr name;
+        // Description of this port
+        public IntPtr description;
+        // The higher this value is, the more useful this port is as default.
+        public uint priority;
+        // A pa_port_available enum, indicating availability status of this port.
+        public int available;
+        // A pa_direction enum, indicating the direction of this port.
+        public int direction;
+        // Number of entries in the profile array
+        public uint n_profiles;
+        // deprecated
+        public void** profiles;
+        // Property list
+        public pa_proplist* proplist;
+        // Latency offset of the port that gets added to the sink/source latency when the port is active.
+        public long latency_offset;
+        // Array of pointers to available profiles, or NULL. Array is terminated by an entry set to NULL.
+        public pa_card_profile_info2** profiles2;
+    }
+
+    /** Stores information about a specific profile of a card. Please
+    * note that this structure can be extended as part of evolutionary
+    * API updates at any time in any new release. \since 5.0 */
+    internal unsafe struct pa_card_profile_info2
+    {
+        // Name of this profile
+        public IntPtr name;
+        // Description of this profile
+        public IntPtr description;
+        // Number of sinks this profile would create
+        public uint n_sinks;
+        // Number of sources this profile would create
+        public uint n_sources;
+        // The higher this value is, the more useful this profile is as a default.
+        public uint priority;
+        // Is this profile available? 0 = "unavailable"
+        public int available;
     }
 }
