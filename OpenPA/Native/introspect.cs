@@ -590,4 +590,64 @@ namespace OpenPA.Native
         // Is this profile available? 0 = "unavailable"
         public int available;
     }
+
+    internal unsafe partial struct pa_context
+    {
+        /** Get information about a card by its index \since 0.9.15 */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            uint,
+            delegate* unmanaged[Cdecl]<pa_context*, pa_card_info*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_get_card_info_by_index;
+
+        /** Get information about a card by its name \since 0.9.15 */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            IntPtr,
+            delegate* unmanaged[Cdecl]<pa_context*, pa_card_info*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_get_card_info_by_name;
+
+        /** Get the complete card list \since 0.9.15 */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            delegate* unmanaged[Cdecl]<pa_context*, pa_card_info*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_get_card_info_list;
+
+        /** Change the profile of a card. \since 0.9.15 */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            uint,
+            IntPtr,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_set_card_profile_by_index;
+
+        /** Change the profile of a card. \since 0.9.15 */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            IntPtr,
+            IntPtr,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
+            void*,
+            pa_operation*> pa_context_set_card_profile_by_name;
+
+        /** Set the latency offset of a port. \since 3.0 */
+        [NativeMethod]
+        public static delegate* unmanaged[Cdecl]<
+            pa_context*,
+            IntPtr,
+            IntPtr,
+            long,
+            delegate* unmanaged[Cdecl]<pa_context*, int, void*, void>,
+            void*, 
+            pa_operation*> pa_context_set_port_latency_offset;
+    }
 }
