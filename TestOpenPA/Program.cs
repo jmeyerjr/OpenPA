@@ -99,6 +99,18 @@ namespace TestOpenPA
                         Console.WriteLine("{0}", client?.Name);
                     }
                 }
+
+                Console.WriteLine();
+
+                Console.WriteLine("Cards:");
+                var cards = await context.GetCardInfoListAsync();
+                if (cards != null)
+                {
+                    foreach(var card in cards)
+                    {
+                        Console.WriteLine("{0}", card?.Name);
+                    }
+                }
             }
             context.Disconnect();
             context.Dispose();
