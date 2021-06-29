@@ -414,12 +414,16 @@ namespace OpenPA
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
-            {
+            {                
+                // Try and hold a lock.
+                // This will force the program to wait for any currently running operations to complete
+                // Before continuing.
+                Monitor.Enter(this);
+
                 if (disposing)
                 {
                     // TODO: dispose managed state (managed objects)
                 }
-
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
 
                 // If we are connected to a PulseAudio server, disconnect
@@ -429,11 +433,14 @@ namespace OpenPA
                 pa_context.pa_context_unref(pa_Context);
 
                 // Set our pointer to null
-                pa_Context = null;
+                pa_Context = null;                
 
                 // Free the state used in the connect callback            
                 Marshal.FreeHGlobal(ptrState);
                 ptrState = IntPtr.Zero;
+
+                // Release the lock
+                Monitor.Exit(this);
 
                 // TODO: set large fields to null
                 disposedValue = true;
