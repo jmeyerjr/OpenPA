@@ -19,6 +19,7 @@ namespace OpenPA.Native
     // void (*pa_stream_event_cb_t)(pa_stream* p, const char* name, pa_proplist* pl, void* userdata)
     // void (*pa_free_cb_t)(void* p)
 
+    [NativeLibrary("libpulse.so.0")]
     internal unsafe struct pa_stream
     {
         /** Create a new, unconnected stream with the specified name and

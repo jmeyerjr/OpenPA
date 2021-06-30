@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace TestOpenPA
 {
@@ -94,7 +95,7 @@ namespace TestOpenPA
                 var clients = await context.GetClientInfoListAsync();
                 if (clients != null)
                 {
-                    foreach(var client in clients)
+                    foreach (var client in clients)
                     {
                         Console.WriteLine("{0}", client?.Name);
                     }
@@ -106,11 +107,18 @@ namespace TestOpenPA
                 var cards = await context.GetCardInfoListAsync();
                 if (cards != null)
                 {
-                    foreach(var card in cards)
+                    foreach (var card in cards)
                     {
                         Console.WriteLine("{0}", card?.Name);
                     }
                 }
+
+                
+                AudioStream audioStream = new(context, "MyAudioStream", serverInfo.SampleSpec, serverInfo.ChannelMap);
+                audioStream.SetStartedCallback((stream) => Console.WriteLine("started"));
+                audioStream.SetWriteCallback((stream, i) => Console.WriteLine("write"));
+                audioStream.Disconnect();
+                audioStream.Dispose();
             }
             context.Disconnect();
             context.Dispose();

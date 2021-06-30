@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using static OpenPA.Native.pa_stream;
 using static OpenPA.Native.pa_operation;
 using OpenPA.Interop;
-using StreamNotifyCallback = System.Action<OpenPA.AudioStream>;
 using StreamEventCallback = System.Action<OpenPA.AudioStream, string?, OpenPA.PropList>;
 using StreamRequestCallback = System.Action<OpenPA.AudioStream, uint>;
 
@@ -23,6 +22,8 @@ namespace OpenPA
         public uint nSize { get; init; }
     }
 
+    public delegate void StreamNotifyCallback(AudioStream stream);
+
     public unsafe class AudioStream : IDisposable
     {
         pa_stream* stream;
@@ -30,30 +31,44 @@ namespace OpenPA
 
         public AudioStream(PAContext context, string name, SampleSpec sampleSpec, ChannelMap channelMap)
         {
-            IntPtr ptrName = Marshal.StringToHGlobalAnsi(name);
+            IntPtr ptrName = Marshal.StringToHGlobalAnsi(name);            
 
             pa_sample_spec sample_spec = SampleSpec.Convert(sampleSpec);
-            pa_channel_map channel_map = ChannelMap.Convert(channelMap);
 
-            stream = pa_stream_new(context.GetContext(), ptrName, &sample_spec, &channel_map);
 
+            pa_channel_map channel_map = ChannelMap.StereoChannelMap;
+            
+            
+
+            pa_context* ctx = context.GetContext();
+
+            Console.WriteLine((IntPtr)pa_stream_new);
+
+            MainLoop.Instance.Lock();
+            stream = pa_stream_new(ctx, ptrName, &sample_spec, &channel_map);
+            MainLoop.Instance.Unlock();
+
+            
+            
             Marshal.FreeHGlobal(ptrName);
         }
 
-        public AudioStream(PAContext context, string name, SampleSpec sampleSpec, ChannelMap channelMap, PropList propList)
-        {
-            IntPtr ptrName = Marshal.StringToHGlobalAnsi(name);
+        //public AudioStream(PAContext context, string name, SampleSpec sampleSpec, ChannelMap channelMap, PropList propList)
+        //{
+        //    IntPtr ptrName = Marshal.StringToHGlobalAnsi(name);
 
-            pa_sample_spec sample_spec = SampleSpec.Convert(sampleSpec);
-            pa_channel_map channel_map = ChannelMap.Convert(channelMap);
-            pa_proplist* proplist = PropList.Convert(propList);
+        //    pa_sample_spec* sample_spec = SampleSpec.Convert(sampleSpec);
+        //    pa_channel_map* channel_map = ChannelMap.Convert(channelMap);
+        //    pa_proplist* proplist = PropList.Convert(propList);
 
-            stream = pa_stream_new_with_proplist(context.GetContext(), ptrName, &sample_spec, &channel_map, proplist);
+        //    stream = pa_stream_new_with_proplist(context.GetContext(), ptrName, sample_spec, channel_map, proplist);
 
-            pa_proplist.pa_proplist_free(proplist);
+        //    pa_proplist.pa_proplist_free(proplist);
 
-            Marshal.FreeHGlobal(ptrName);
-        }
+        //    Marshal.FreeHGlobal((IntPtr)channel_map);
+        //    Marshal.FreeHGlobal((IntPtr)sample_spec);
+        //    Marshal.FreeHGlobal(ptrName);
+        //}
 
         internal AudioStream(pa_stream* ptr)
         {

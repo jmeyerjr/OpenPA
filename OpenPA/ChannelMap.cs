@@ -3,6 +3,7 @@ using OpenPA.Native;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -62,19 +63,43 @@ namespace OpenPA
 
         internal unsafe static pa_channel_map Convert(ChannelMap channelMap)
         {
-            pa_channel_map channel_map;
-
-            channel_map.channels = channelMap.NumChannels;
+            pa_channel_map cm;
+            pa_channel_map* channel_map = &cm;
+            
+            channel_map = pa_channel_map.pa_channel_map_init(channel_map);
+            channel_map->channels = channelMap.NumChannels;
 
             for (int i = 0; i < channelMap.NumChannels; i++)
             {
                 if (channelMap.Map != null)
                 {
-                    channel_map.map[i] = (int)channelMap.Map[i];
+                    channel_map->map[i] = (int)channelMap.Map[i];
                 }
             }
 
-            return channel_map;
+            return cm;
+        }
+
+        internal unsafe static pa_channel_map MonoChannelMap
+        {
+            get
+            {
+                pa_channel_map channel_map;
+                pa_channel_map.pa_channel_map_init_mono(&channel_map);
+
+                return channel_map;
+            }
+        }
+
+        internal unsafe static pa_channel_map StereoChannelMap
+        {
+            get
+            {
+                pa_channel_map channel_map;
+                pa_channel_map.pa_channel_map_init_stereo(&channel_map);
+
+                return channel_map;
+            }
         }
     }
 }

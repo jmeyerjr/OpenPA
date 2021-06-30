@@ -3,6 +3,7 @@ using OpenPA.Native;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -47,21 +48,24 @@ namespace OpenPA
                 Rate = sample_spec.rate,
                 Channels = sample_spec.channels,
                 Format = sample_spec.format
-            };
+            };            
 
             // Return the SampleSpec object
             return sampleSpec;
         }
 
-        internal static pa_sample_spec Convert(SampleSpec sampleSpec)
+        internal unsafe static pa_sample_spec Convert(SampleSpec sampleSpec)
         {
-            pa_sample_spec sample_spec;
+            pa_sample_spec ss;
+            pa_sample_spec* sample_spec = &ss;
 
-            sample_spec.rate = sampleSpec.Rate;
-            sample_spec.channels = sampleSpec.Channels;
-            sample_spec.format = sampleSpec.Format;
+            sample_spec = pa_sample_spec.pa_sample_spec_init(sample_spec);
 
-            return sample_spec;
+            sample_spec->rate = sampleSpec.Rate;
+            sample_spec->channels = sampleSpec.Channels;
+            sample_spec->format = sampleSpec.Format;
+
+            return ss;
         }
 
     }
