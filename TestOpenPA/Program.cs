@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using OpenPA.Native;
 
 namespace TestOpenPA
 {
@@ -113,10 +114,33 @@ namespace TestOpenPA
                     }
                 }
 
+                SampleSpec sampleSpec = new()
+                {
+                    Channels = 1,
+                    Format = SampleFormat.S16LE,
+                    Rate = 44100,
+                };
+
+                AudioStream audioStream = AudioStream.CreateMonoStream(context, "MyAudioStream", sampleSpec);
+                audioStream.SetStateCallback((stream) => Console.WriteLine("Stream created."));
+                audioStream.SetStartedCallback((stream) => Console.WriteLine("started"));                
+                await audioStream.ConnectPlaybackAsync(serverInfo.DefaultSinkName, null, StreamFlags.NOFLAGS);
+
+                await Task.Delay(500);
+
+                byte[] buffer = System.IO.File.ReadAllBytes("save.snd");
+
+                for (int i = 0; i < 5; i++)
+                {
+                    AudioBuffer? audioBuffer = audioStream.BeginWrite((uint)buffer.Length);
+                    if (audioBuffer != null)
+                    {
+                        audioBuffer.Copy(buffer);
+                        audioStream.Write(audioBuffer);
+                        await audioStream.DrainAsync();
+                    }
+                }
                 
-                AudioStream audioStream = new(context, "MyAudioStream", serverInfo.SampleSpec, serverInfo.ChannelMap);
-                audioStream.SetStartedCallback((stream) => Console.WriteLine("started"));
-                audioStream.SetWriteCallback((stream, i) => Console.WriteLine("write"));
                 audioStream.Disconnect();
                 audioStream.Dispose();
             }
@@ -127,5 +151,6 @@ namespace TestOpenPA
             MainLoop.Instance.Dispose();
 
         }
+
     }
 }

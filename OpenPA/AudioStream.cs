@@ -10,24 +10,33 @@ using System.Threading;
 using System.Threading.Tasks;
 using static OpenPA.Native.pa_stream;
 using static OpenPA.Native.pa_operation;
-using OpenPA.Interop;
-using StreamEventCallback = System.Action<OpenPA.AudioStream, string?, OpenPA.PropList>;
+
 using StreamRequestCallback = System.Action<OpenPA.AudioStream, uint>;
 
 namespace OpenPA
 {
     public class AudioBuffer
-    {
+    { 
         public IntPtr Ptr { get; init; }
-        public uint nSize { get; init; }
+        public uint nSize { get; init; }  
+        
+        public void Copy(byte[] buffer)
+        {
+            Marshal.Copy(buffer, 0, Ptr, (int)nSize);
+        }
     }
 
     public delegate void StreamNotifyCallback(AudioStream stream);
+    public delegate void StreamEventCallback(AudioStream stream, string? e, PropList propList);
+    public delegate void StreamRequestCallback(AudioStream stream, uint i);
 
     public unsafe class AudioStream : IDisposable
     {
         pa_stream* stream;
         private bool disposedValue;
+
+        internal AudioStream()
+        { }
 
         public AudioStream(PAContext context, string name, SampleSpec sampleSpec, ChannelMap channelMap)
         {
@@ -36,13 +45,11 @@ namespace OpenPA
             pa_sample_spec sample_spec = SampleSpec.Convert(sampleSpec);
 
 
-            pa_channel_map channel_map = ChannelMap.StereoChannelMap;
-            
-            
+            pa_channel_map channel_map = ChannelMap.Convert(channelMap);
+                        
 
             pa_context* ctx = context.GetContext();
-
-            Console.WriteLine((IntPtr)pa_stream_new);
+            
 
             MainLoop.Instance.Lock();
             stream = pa_stream_new(ctx, ptrName, &sample_spec, &channel_map);
@@ -51,6 +58,58 @@ namespace OpenPA
             
             
             Marshal.FreeHGlobal(ptrName);
+        }
+
+        public static AudioStream CreateMonoStream(PAContext context, string name, SampleSpec sampleSpec)
+        {
+            AudioStream audioStream = new();
+
+            IntPtr ptrName = Marshal.StringToHGlobalAnsi(name);
+
+            pa_sample_spec sample_spec = SampleSpec.Convert(sampleSpec);
+
+
+            pa_channel_map channel_map = ChannelMap.MonoChannelMap;
+
+
+            pa_context* ctx = context.GetContext();
+
+
+            MainLoop.Instance.Lock();
+            audioStream.stream = pa_stream_new(ctx, ptrName, &sample_spec, &channel_map);
+            MainLoop.Instance.Unlock();
+
+
+
+            Marshal.FreeHGlobal(ptrName);
+
+            return audioStream;
+        }
+
+        public static AudioStream CreateStereoStream(PAContext context, string name, SampleSpec sampleSpec)
+        {
+            AudioStream audioStream = new();
+
+            IntPtr ptrName = Marshal.StringToHGlobalAnsi(name);
+
+            pa_sample_spec sample_spec = SampleSpec.Convert(sampleSpec);
+
+
+            pa_channel_map channel_map = ChannelMap.StereoChannelMap;
+
+
+            pa_context* ctx = context.GetContext();
+
+
+            MainLoop.Instance.Lock();
+            audioStream.stream = pa_stream_new(ctx, ptrName, &sample_spec, &channel_map);
+            MainLoop.Instance.Unlock();
+
+
+
+            Marshal.FreeHGlobal(ptrName);
+
+            return audioStream;
         }
 
         //public AudioStream(PAContext context, string name, SampleSpec sampleSpec, ChannelMap channelMap, PropList propList)
@@ -193,11 +252,14 @@ namespace OpenPA
         public Task<bool> ConnectPlaybackAsync(string sink, BufferAttr attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
             => Task.Run(() => ConnectPlayback(sink, attr, flags, volume, sync));
 
-        public bool ConnectPlayback(string sink, BufferAttr attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
+        public bool ConnectPlayback(string sink, BufferAttr? attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
         {
             IntPtr ptr = Marshal.StringToHGlobalAnsi(sink);
 
-            pa_buffer_attr buffer_attr = BufferAttr.Convert(attr);
+            pa_buffer_attr* buffer_attr = null;
+
+            if (attr != null)
+                *buffer_attr = BufferAttr.Convert(attr);
 
             pa_cvolume cvolume;
             pa_cvolume* ptrVol;
@@ -220,7 +282,7 @@ namespace OpenPA
 
             Monitor.Enter(this);
             MainLoop.Instance.Lock();
-            int result = pa_stream_connect_playback(stream, ptr, &buffer_attr, flags, ptrVol, sync_stream);
+            int result = pa_stream_connect_playback(stream, ptr, buffer_attr, flags, ptrVol, sync_stream);
             MainLoop.Instance.Unlock();
             Monitor.Exit(this);
 
@@ -257,8 +319,8 @@ namespace OpenPA
 
         public AudioBuffer? BeginWrite(uint size)
         {
-            IntPtr ptrBuffer = IntPtr.Zero;
-            void* ptr = (void*)ptrBuffer;
+
+            void* ptr = null;
 
             uint nsize = size;
 
@@ -275,12 +337,12 @@ namespace OpenPA
             {
                 audioBuffer = new()
                 {
-                    Ptr = ptrBuffer,
+                    Ptr = (IntPtr)ptr,
                     nSize = nsize
                 };
             }
             return audioBuffer;
-        }
+        }        
 
         public Task<bool> CancelWriteAsync() => Task.Run(CancelWrite);
 
