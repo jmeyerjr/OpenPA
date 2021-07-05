@@ -249,7 +249,7 @@ namespace OpenPA
             return corked == 1;
         }
 
-        public Task<bool> ConnectPlaybackAsync(string sink, BufferAttr attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
+        public Task<bool> ConnectPlaybackAsync(string sink, BufferAttr? attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)
             => Task.Run(() => ConnectPlayback(sink, attr, flags, volume, sync));
 
         public bool ConnectPlayback(string sink, BufferAttr? attr, StreamFlags flags, Volume? volume = null, AudioStream? sync = null)

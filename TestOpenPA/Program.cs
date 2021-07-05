@@ -50,6 +50,18 @@ namespace TestOpenPA
             ServerInfo? serverInfo = await context.GetServerInfoAsync();
             if (serverInfo != null)
             {
+#if DEBUG
+#else
+                if (context.SetCardProfile(0, "output:hdmi-stereo"))
+                {
+                    Console.WriteLine("Setting profile success.");
+                }
+                else
+                {
+                    Console.WriteLine("Setting profile failed.");
+                }
+#endif
+
                 Console.WriteLine("Host Name: {0}", serverInfo.HostName);
                 Console.WriteLine("User Name: {0}", serverInfo.UserName);
                 Console.WriteLine("Server Name: {0}", serverInfo.ServerName);
@@ -114,35 +126,41 @@ namespace TestOpenPA
                     }
                 }
 
-                SampleSpec sampleSpec = new()
+                if (!String.IsNullOrWhiteSpace(serverInfo.DefaultSinkName))
                 {
-                    Channels = 1,
-                    Format = SampleFormat.S16LE,
-                    Rate = 44100,
-                };
-
-                AudioStream audioStream = AudioStream.CreateMonoStream(context, "MyAudioStream", sampleSpec);
-                audioStream.SetStateCallback((stream) => Console.WriteLine("Stream created."));
-                audioStream.SetStartedCallback((stream) => Console.WriteLine("started"));                
-                await audioStream.ConnectPlaybackAsync(serverInfo.DefaultSinkName, null, StreamFlags.NOFLAGS);
-
-                await Task.Delay(500);
-
-                byte[] buffer = System.IO.File.ReadAllBytes("save.snd");
-
-                for (int i = 0; i < 5; i++)
-                {
-                    AudioBuffer? audioBuffer = audioStream.BeginWrite((uint)buffer.Length);
-                    if (audioBuffer != null)
+                    SampleSpec sampleSpec = new()
                     {
-                        audioBuffer.Copy(buffer);
-                        audioStream.Write(audioBuffer);
-                        await audioStream.DrainAsync();
+                        Channels = 1,
+                        Format = SampleFormat.S16LE,
+                        Rate = 44100,
+                    };
+
+                    AudioStream audioStream = AudioStream.CreateMonoStream(context, "MyAudioStream", sampleSpec);
+                    audioStream.SetStateCallback((stream) => Console.WriteLine("Stream created."));
+                    audioStream.SetStartedCallback((stream) => Console.WriteLine("started"));
+                    //await audioStream.ConnectPlaybackAsync(serverInfo.DefaultSinkName, null, StreamFlags.NOFLAGS);
+                    await audioStream.ConnectPlaybackAsync(sinks?[0]?.Name ?? serverInfo.DefaultSinkName, null, StreamFlags.NOFLAGS);
+
+                    await Task.Delay(500);
+#if DEBUG
+                    byte[] buffer = System.IO.File.ReadAllBytes(".\\Assets\\save.snd");
+#else
+                byte[] buffer = System.IO.File.ReadAllBytes("/usr/share/Assets/save.snd");
+#endif
+                    for (int i = 0; i < 5; i++)
+                    {
+                        AudioBuffer? audioBuffer = audioStream.BeginWrite((uint)buffer.Length);
+                        if (audioBuffer != null)
+                        {
+                            audioBuffer.Copy(buffer);
+                            audioStream.Write(audioBuffer);
+                            await audioStream.DrainAsync();
+                        }
                     }
+
+                    audioStream.Disconnect();
+                    audioStream.Dispose();
                 }
-                
-                audioStream.Disconnect();
-                audioStream.Dispose();
             }
             context.Disconnect();
             context.Dispose();

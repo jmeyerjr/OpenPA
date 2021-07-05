@@ -15,19 +15,23 @@ apps:
     - pulseaudio
 
 parts:
-  xwintest:
+  testopenpa:
     plugin: dotnet
     dotnet-version: 5.0
     dotnet-runtime-version: '5.0.7'
     source: .
     source-type: local
-    override-build: |
-      dotnet build -c Release
+    override-build: |     
       dotnet publish -r linux-x64 -c Release -p:PublishTrimmed=true --self-contained true -o $SNAPCRAFT_PART_INSTALL/bin/
       chmod 0755 $SNAPCRAFT_PART_INSTALL/bin/TestOpenPA
+      cp -r ${SNAPCRAFT_PART_INSTALL}/bin/Assets ${SNAPCRAFT_PART_INSTALL}/usr/share
     stage-packages:
     - libpulse0   
     
+layout:
+  /usr/share/Assets:
+    bind: $SNAP/usr/share/Assets
+
 environment:
   LD_LIBRARY_PATH: ${LD_LIBRARY_PATH}:${SNAP}/lib/:${SNAP}/lib/${SNAPCRAFT_ARCH_TRIPLET}/:${SNAP}/usr/lib/:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/
   PATH: $SNAP/bin/:$SNAP/usr/bin/:${PATH}
