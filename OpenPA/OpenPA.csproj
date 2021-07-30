@@ -5,6 +5,14 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <Platforms>AnyCPU;x64</Platforms>
+    <Authors>John Meyer Jr.</Authors>
+    <Description>Interact and use a PulseAudio server. Allows for connecting to local and remote PulseAudio servers, querying capabilities and playing audio.</Description>
+    <Copyright>copyright © 2021 John Meyer Jr.</Copyright>
+    <Company>John's HomeLab</Company>
+    <PackageTags>PulseAudio</PackageTags>
+    <PackageLicenseFile>MITLicense.txt</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -34,5 +42,12 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="MITLicense.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

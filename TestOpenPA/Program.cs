@@ -50,17 +50,17 @@ namespace TestOpenPA
             ServerInfo? serverInfo = await context.GetServerInfoAsync();
             if (serverInfo != null)
             {
-#if DEBUG
-#else
-                if (context.SetCardProfile(0, "output:hdmi-stereo"))
-                {
-                    Console.WriteLine("Setting profile success.");
-                }
-                else
-                {
-                    Console.WriteLine("Setting profile failed.");
-                }
-#endif
+//#if DEBUG
+//#else
+//                if (context.SetCardProfile(0, "output:hdmi-stereo"))
+//                {
+//                    Console.WriteLine("Setting profile success.");
+//                }
+//                else
+//                {
+//                    Console.WriteLine("Setting profile failed.");
+//                }
+//#endif
 
                 Console.WriteLine("Host Name: {0}", serverInfo.HostName);
                 Console.WriteLine("User Name: {0}", serverInfo.UserName);
